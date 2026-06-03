@@ -28,14 +28,14 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install
 
       - name: Build
-        run: npm run build --base /horizon/
+        run: yarn build --base /horizon/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
