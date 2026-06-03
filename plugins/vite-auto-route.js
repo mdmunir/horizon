@@ -1,0 +1,222 @@
+import { readdirSync, writeFileSync } from "fs";
+import { dirname, resolve, extname, sep } from "path";
+
+function listFiles(dir, prefix = '/') {
+    const fullPath = resolve(dir);
+    const entries = readdirSync(fullPath, { withFileTypes: true });
+    const results = {};
+
+    for (const entry of entries) {
+        const res = resolve(fullPath, entry.name);
+        if (entry.isDirectory()) {
+            Object.assign(results, listFiles(res, prefix + entry.name + '/'));
+        } else if (extname(res) == ".vue") {
+            results[(prefix + entry.name).replace(/\.vue$/, '')] = res;
+        }
+    }
+    return results;
+}
+
+/**
+ * 
+ * @param {Object} pages 
+ * @returns Object[]
+ */
+function buildRoutes(pages) {
+    const routes = {};
+    Object.entries(pages).forEach(([path, page]) => {
+        var matches = path.match(/^(?<key>[^\@]+)(\@(?<view>[\w\-]+))?$/);
+        if (matches) {
+            var { key, view } = matches.groups;
+            view = view || 'default';
+            if (routes[key]) {
+                routes[key].components[view] = `<<${page}>>`;
+                routes[key].props[view] = true;
+            } else {
+                var p = key.replace(/\[\[([\w\-]+)\]\]\+/g, ':$1*')
+                    .replace(/\[\[([\w\-]+)\]\]/g, ':$1?')
+                    .replace(/\[([\w\-]+)\](\+)?/g, ':$1$2')
+                    .replace(/\[\.\.\.([\w\-]+)\]/g, ':$1(+*)')
+                    .replace(/\./g, '/')
+                    .replace('(+*)', '(.*)')
+                    .replace(/\([\w\-]+\)/g, '')
+                    .replace(/\/index$/, '')
+                    .replace(/\/+/g, '/')
+                    .replace(/\/+$/, '');
+                if (p == '') {
+                    p = '/';
+                }
+                routes[key] = {
+                    path: p,
+                    name: key,
+                    components: { [view]: `<<${page}>>` },
+                    props: { [view]: true },
+                };
+            }
+        }
+    });
+
+    const keys = Object.keys(routes).sort();
+    /**
+     * 
+     * @param {string} key 
+     * @returns Object[]
+     */
+    function getChildren(key) {
+        const children = [];
+        keys.filter(s => s.startsWith(key + '/')).sort().forEach(k => {
+            if (routes[k]) {
+                const child = routes[k];
+                const subChildren = getChildren(k);
+                if (subChildren.length) {
+                    child.children = subChildren;
+                }
+                children.push(child);
+                delete routes[k];
+            }
+        });
+        return children;
+    }
+    return getChildren('');
+}
+
+export default function AutoRoute(config) {
+    if (typeof config === 'string') {
+        config = { sourcePath: config };
+    }
+    const sourcePaths = Array.isArray(config.sourcePath) ? config.sourcePath : [config.sourcePath];
+
+    var routes = [];
+    sourcePaths.forEach(source => {
+        if (typeof source === 'string') {
+            source = { path: source, prefix: config.prefix || '/' };
+        }
+        const pages = listFiles(source.path, source.prefix || '/');
+        routes = routes.concat(buildRoutes(pages));
+    });
+
+
+    function applyImport(content, aliases) {
+        function toRelative(f) {
+            for (let i = 0; i < aliases.length; i++) {
+                if (f.startsWith(aliases[i].path)) {
+                    return aliases[i].alias + f.substring(aliases[i].length);
+                }
+            }
+            return f;
+        }
+        const REGEX_IMPORT1 = /import (\w+) from \"(.+)\";$/gm;
+        const REGEX_IMPORT2 = /\"\<\<([^\>]+)\>\>(\<\<LAYOUT\>\>)?\"/g;
+        content = content.replace(REGEX_IMPORT1, (_, m, f) => {
+                let file = aliases ? toRelative(f) : f;
+                return `import ${m} from "${file}";`;
+            });
+        if(config.lazy){
+            content = content.replace(REGEX_IMPORT2, (_, f, ly) => {
+                let file = aliases ? toRelative(f) : f;
+                return `() => import("${file}")` + (ly ? '.then(m => wrapLayout(m))' : '');
+            }).replace('<<M_PAGES>>', '');
+        } else {
+            const mPages = [];
+            content = content.replace(REGEX_IMPORT2, (_, f, ly) => {
+                let file = aliases ? toRelative(f) : f;
+                let m_page = 'm_page_' + mPages.length;
+                mPages.push(`import ${m_page} from "${file}";`);
+                return ly ? `wrapLayout({default: ${m_page}}).default` : m_page;
+            }).replace('<<M_PAGES>>', '\n' + mPages.join('\n') + '\n');
+        }
+        return content;
+    }
+
+    let content = '';
+    if (config.layout) {
+        const layouts = [];
+        const imports = [];
+        Object.entries(config.layout).forEach(([k, f], ix) => {
+            imports.push(`import m_layout_${ix} from ${JSON.stringify(resolve(f))};`);
+            k = /^\w+$/.test(k) ? k : JSON.stringify(k);
+            layouts.push(`  ${k}: m_layout_${ix}`);
+        });
+        let s = JSON.stringify(layouts, null, 2).replace(/\"(\w+)\"\:/g, '$1:');
+        content += `import {h, defineComponent} from 'vue';
+<<M_PAGES>>
+${imports.join('\n')}
+
+const Layouts = {
+${layouts.join(',\n')}
+};
+
+function wrapLayout(module) {
+    const child = module.default;
+    var layout = child.layout;
+    if (layout === undefined) {
+        layout = Layouts.default;
+    } else if (typeof layout === 'string') {
+        layout = Layouts[layout];
+    }
+    if (layout) {
+        return {
+            default: defineComponent({
+                name: 'LayoutWrapped',
+                props: child.props,
+                setup(props, { attrs, slots }) {
+                    return () => h(layout, attrs, { default: () => h(child, props, slots) });
+                }
+            }),
+        };
+    }
+    return module;
+}
+
+`;
+
+        routes.forEach(route => {
+            if (route.components.default) {
+                route.components.default = route.components.default + '<<LAYOUT>>';
+            }
+        });
+    }
+
+    let s = JSON.stringify(routes, null, 2).replace(/\"(\w+)\"\:/g, '$1:');
+    content += `export const routes = ${s};
+
+export default routes;`;
+
+    if (config.output) {
+        const fullPath = resolve(config.output);
+        let p = dirname(fullPath);
+        const aliases = [
+            { path: p + sep, alias: './', length: p.length + 1 }
+        ];
+        let alias = '../';
+        while (true) {
+            let p2 = dirname(p);
+            if (p2 == p) {
+                break;
+            }
+            p = p2;
+            p2 = (p + sep).replace(/\/+/g, '/');
+            aliases.push({ path: p2, alias, length: p2.length });
+            alias += '../';
+        }
+
+        writeFileSync(fullPath, applyImport(content, aliases), 'utf8');
+    }
+
+    const name = config.name || 'auto-route';
+    const virtualModuleId = `virtual:${name}`;
+    const resolvedVirtualModuleId = '\0' + virtualModuleId;
+    return {
+        name, // required, will show up in warnings and errors
+        resolveId(id) {
+            if (id === virtualModuleId) {
+                return resolvedVirtualModuleId;
+            }
+        },
+        load(id) {
+            if (id === resolvedVirtualModuleId) {
+                return applyImport(content);
+            }
+        },
+    }
+}

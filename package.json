@@ -1,0 +1,40 @@
+{
+    "name": "horizon",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Astronomi",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "watch": "vite build --watch"
+    },
+    "keywords": [],
+    "author": {
+        "name": "Misbahul D Munir",
+        "email": "misbahuldmunir@gmail.com"
+    },
+    "license": "ISC",
+    "dependencies": {
+        "@mdi/font": "^7.4.47",
+        "@vitejs/plugin-vue": "^6.0.0",
+        "astronomia": "^4.1.1",
+        "dotenv": "^16.0.0",
+        "maska": "^3.2.0",
+        "moment": "^2.30.1",
+        "omggif": "^1.0.10",
+        "sass": "^1.64.2",
+        "three": "^0.184.0",
+        "unplugin-auto-import": "^0.17.2",
+        "unplugin-vue-components": "^0.26.0",
+        "vite": "^8.0",
+        "vite-plugin-pwa": "^1.3.0",
+        "vue": "^3.5",
+        "vue-router": "4",
+        "vuetify": "^4.0.0"
+    },
+    "devDependencies": {
+        "serialize-to-js": "^3.1.2",
+        "serialize-to-module": "^1.1.0"
+    }
+}
