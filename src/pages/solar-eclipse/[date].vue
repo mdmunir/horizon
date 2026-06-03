@@ -20,18 +20,23 @@ const tabChildren = computed(() => Object.entries(tabs).map(([name, label]) => {
 }));
 
 const data = computed(() => eclipseDecade.rows.find(row => row.date == date.value));
-const selected = computed(() => route.name);
+const selected = computed({
+    get(){
+        return route.name
+    },
+    set(v){}
+});
 </script>
 <template>
     <v-container fluid>
         <v-row density="compact">
             <v-col cols="12">
                 <Panel :title="`Solar Eclipse ${date}`">
-                    <v-tabs :model-value="selected">
+                    <v-tabs v-model="selected">
                         <v-tab v-for="ch in tabChildren" :value="ch.name" :to="ch.to">{{ ch.label }}</v-tab>
                     </v-tabs>
                     <v-divider></v-divider>
-                    <v-tabs-window :model-value="selected">
+                    <v-tabs-window v-model="selected">
                         <v-tabs-window-item :value="selected">
                             <RouterView v-if="data" :data="data" :date="date"></RouterView>
                         </v-tabs-window-item>

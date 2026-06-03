@@ -99,6 +99,7 @@ onMounted(() => {
         render();
     });
     controls.enableRotate = props.control && props.type == 'globe';
+    props.type == 'globe' && setCamera(props.cameraPos);
 });
 
 function render() {
@@ -130,11 +131,8 @@ function resize(time = 0) {
     }, time);
 }
 
-watch(() => props.cameraPos, value => {
-    if (props.type != 'globe' || props.control) {
-        return;
-    }
-    let v = value || {};
+function setCamera(pos){
+    let v = pos || {};
     const [sLon, cLon] = sincos(v.lon || 0);
     const [sLat, cLat] = sincos(v.lat || 0);
     const r = v.distance || 4;
@@ -143,7 +141,14 @@ watch(() => props.cameraPos, value => {
         controls.update();
     }
     render();
-}, { deep: true });
+}
+
+watch(() => props.cameraPos, value => {
+    if (props.type != 'globe' || props.control) {
+        return;
+    }
+    setCamera(value);
+}, { deep: true});
 
 watch(() => props.scale, v => {
     doScale(v);
@@ -164,10 +169,12 @@ watch(() => props.type, v => {
     uniform.isAe.value = (v == 'ae' ? 1 : 0);
     doScale(props.scale);
     controls.enableRotate = props.control && v == 'globe';
-    if (v != 'globe') {
+    if(v == 'globe'){
+        setCamera(props.cameraPos);
+    }else {
         camera.position.set(0, 0, 4);
+        render();
     }
-    render();
 });
 watch(() => props.path, v => {
     uniform.isPath.value = (v ? 1 : 0);

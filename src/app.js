@@ -7,6 +7,7 @@ import 'vuetify/lib/styles/main.sass';
 import '@mdi/font/css/materialdesignicons.css';
 import './assets/css/app.css';
 import './plugins/format';
+import main from './plugins/main';
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -17,4 +18,5 @@ const App = { render: () => h(RouterView) };
 createApp(App)
     .use(vuetify)
     .use(router)
+    .use(main)
     .mount('#app');

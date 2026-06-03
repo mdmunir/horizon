@@ -1,4 +1,5 @@
 <script setup>
+import { RouterLink } from 'vue-router';
 defineOptions({
     layout: 'main',
 });
@@ -11,7 +12,6 @@ defineOptions({
                     <v-card class="align-center" style="min-width:320px">
                         <v-card-text>
                             <RouterLink to="/"><v-img height="40" :src="appLogo"></v-img></RouterLink>
-                            <h4 class="text-center text-h6">About</h4>
                         </v-card-text>
                         <v-card-text>
                             <h2 class="text-center">Aplikasi astronomi</h2>

@@ -41,7 +41,10 @@ watch(dc, val => eclipseDecade.decade = val, { immediate: true });
                     <ul>
                         <li>
                             <span v-for="link in dcLinks" :key="link.label">
-                                [<router-link :to="link.to">{{ link.label }}</router-link>]
+                                [
+                                <span v-if="link.active">{{ link.label }}</span>
+                                <router-link v-else :to="link.to">{{ link.label }}</router-link>
+                                ]
                             </span>
                         </li>
                     </ul>
@@ -69,7 +72,10 @@ watch(dc, val => eclipseDecade.decade = val, { immediate: true });
                     <ul>
                         <li v-for="mLinks in cyLinks">
                             <span v-for="link in mLinks" :key="link.label">
-                                [<router-link :to="link.to">{{ link.label }}</router-link>]
+                                [
+                                <span v-if="link.active">{{ link.label }}</span>
+                                <router-link v-else :to="link.to">{{ link.label }}</router-link>
+                                ]
                             </span>
                         </li>
                     </ul>
