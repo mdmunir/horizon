@@ -51,7 +51,7 @@ export default defineConfig(() => {
                 deep: false,
             }),
             VitePWA({
-                registerType: 'prompt', // Options: 'autoUpdate' or 'prompt'
+                registerType: 'autoUpdate', // Options: 'autoUpdate' or 'prompt'
                 includeAssets: ['favicon.ico'],
                 manifest: {
                     name: 'Horizon',

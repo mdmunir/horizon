@@ -80,23 +80,9 @@ function buildRoutes(pages) {
     return getChildren('');
 }
 
-export default function AutoRoute(config) {
-    if (typeof config === 'string') {
-        config = { sourcePath: config };
-    }
-    const sourcePaths = Array.isArray(config.sourcePath) ? config.sourcePath : [config.sourcePath];
-
-    var routes = [];
-    sourcePaths.forEach(source => {
-        if (typeof source === 'string') {
-            source = { path: source, prefix: config.prefix || '/' };
-        }
-        const pages = listFiles(source.path, source.prefix || '/');
-        routes = routes.concat(buildRoutes(pages));
-    });
-
-
-    function applyImport(content, aliases) {
+export default function AutoRoute(options) {
+    
+    function applyImport(content, lazy, aliases) {
         function toRelative(f) {
             for (let i = 0; i < aliases.length; i++) {
                 if (f.startsWith(aliases[i].path)) {
@@ -108,10 +94,10 @@ export default function AutoRoute(config) {
         const REGEX_IMPORT1 = /import (\w+) from \"(.+)\";$/gm;
         const REGEX_IMPORT2 = /\"\<\<([^\>]+)\>\>(\<\<LAYOUT\>\>)?\"/g;
         content = content.replace(REGEX_IMPORT1, (_, m, f) => {
-                let file = aliases ? toRelative(f) : f;
-                return `import ${m} from "${file}";`;
-            });
-        if(config.lazy){
+            let file = aliases ? toRelative(f) : f;
+            return `import ${m} from "${file}";`;
+        });
+        if (lazy) {
             content = content.replace(REGEX_IMPORT2, (_, f, ly) => {
                 let file = aliases ? toRelative(f) : f;
                 return `() => import("${file}")` + (ly ? '.then(m => wrapLayout(m))' : '');
@@ -128,17 +114,29 @@ export default function AutoRoute(config) {
         return content;
     }
 
-    let content = '';
-    if (config.layout) {
-        const layouts = [];
-        const imports = [];
-        Object.entries(config.layout).forEach(([k, f], ix) => {
-            imports.push(`import m_layout_${ix} from ${JSON.stringify(resolve(f))};`);
-            k = /^\w+$/.test(k) ? k : JSON.stringify(k);
-            layouts.push(`  ${k}: m_layout_${ix}`);
+    function BuildContent(config, lazy) {
+        const sourcePaths = Array.isArray(config.sourcePath) ? config.sourcePath : [config.sourcePath];
+
+        var routes = [];
+        sourcePaths.forEach(source => {
+            if (typeof source === 'string') {
+                source = { path: source, prefix: config.prefix || '/' };
+            }
+            const pages = listFiles(source.path, source.prefix || '/');
+            routes = routes.concat(buildRoutes(pages));
         });
-        let s = JSON.stringify(layouts, null, 2).replace(/\"(\w+)\"\:/g, '$1:');
-        content += `import {h, defineComponent} from 'vue';
+
+        let content = '';
+        if (config.layout) {
+            const layouts = [];
+            const imports = [];
+            Object.entries(config.layout).forEach(([k, f], ix) => {
+                imports.push(`import m_layout_${ix} from ${JSON.stringify(resolve(f))};`);
+                k = /^\w+$/.test(k) ? k : JSON.stringify(k);
+                layouts.push(`  ${k}: m_layout_${ix}`);
+            });
+            let s = JSON.stringify(layouts, null, 2).replace(/\"(\w+)\"\:/g, '$1:');
+            content += `import {h, defineComponent} from 'vue';
 <<M_PAGES>>
 ${imports.join('\n')}
 
@@ -170,40 +168,47 @@ function wrapLayout(module) {
 
 `;
 
-        routes.forEach(route => {
-            if (route.components.default) {
-                route.components.default = route.components.default + '<<LAYOUT>>';
-            }
-        });
-    }
+            routes.forEach(route => {
+                if (route.components.default) {
+                    route.components.default = route.components.default + '<<LAYOUT>>';
+                }
+            });
+        }
 
-    let s = JSON.stringify(routes, null, 2).replace(/\"(\w+)\"\:/g, '$1:');
-    content += `export const routes = ${s};
+        let s = JSON.stringify(routes, null, 2).replace(/\"(\w+)\"\:/g, '$1:');
+        content += `export const routes = ${s};
 
 export default routes;`;
 
-    if (config.output) {
-        const fullPath = resolve(config.output);
-        let p = dirname(fullPath);
-        const aliases = [
-            { path: p + sep, alias: './', length: p.length + 1 }
-        ];
-        let alias = '../';
-        while (true) {
-            let p2 = dirname(p);
-            if (p2 == p) {
-                break;
+        if (config.output) {
+            const fullPath = resolve(config.output);
+            let p = dirname(fullPath);
+            const aliases = [
+                { path: p + sep, alias: './', length: p.length + 1 }
+            ];
+            let alias = '../';
+            while (true) {
+                let p2 = dirname(p);
+                if (p2 == p) {
+                    break;
+                }
+                p = p2;
+                p2 = (p + sep).replace(/\/+/g, '/');
+                aliases.push({ path: p2, alias, length: p2.length });
+                alias += '../';
             }
-            p = p2;
-            p2 = (p + sep).replace(/\/+/g, '/');
-            aliases.push({ path: p2, alias, length: p2.length });
-            alias += '../';
+
+            writeFileSync(fullPath, applyImport(content, lazy, aliases), 'utf8');
         }
 
-        writeFileSync(fullPath, applyImport(content, aliases), 'utf8');
+        return applyImport(content, lazy);
     }
 
-    const name = config.name || 'auto-route';
+    if (typeof options === 'string') {
+        options = { sourcePath: options };
+    }
+
+    const name = options.name || 'auto-route';
     const virtualModuleId = `virtual:${name}`;
     const resolvedVirtualModuleId = '\0' + virtualModuleId;
     return {
@@ -215,8 +220,27 @@ export default routes;`;
         },
         load(id) {
             if (id === resolvedVirtualModuleId) {
-                return applyImport(content);
+                return BuildContent(options, options.lazy);
             }
         },
+        handleHotUpdate({server}) {
+            const updates = [];
+            const mod = server.moduleGraph.getModuleById(resolvedVirtualModuleId);
+            if(mod){
+                server.moduleGraph.invalidateModule(resolvedVirtualModuleId);
+                updates.push({
+                    type: 'js-update',
+                    path: '/' + virtualModuleId,
+                    acceptedPath: '/' + virtualModuleId,
+                    timestamp: Date.now(),
+                });
+            }
+            if (options.output) {
+                BuildContent(options, options.lazy);
+            }
+            if(updates.length){
+                server.ws.send({type:'update'. updates});
+            }
+        }
     }
 }
