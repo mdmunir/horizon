@@ -7,8 +7,9 @@ const show = ref(true);
 </script>
 <template>
     <v-card>
-        <v-toolbar density="compact" :title="title">
+        <v-toolbar density="compact">
             <slot name="toolbar"></slot>
+            <v-toolbar-title v-if="title">{{ title }}</v-toolbar-title>
             <v-spacer></v-spacer>
             <slot name="toolbar-right"></slot>
             <v-btn v-if="collapsable" @click="show = !show" :icon="show ? 'mdi-menu-up' : 'mdi-menu-down'" density="compact"></v-btn>
