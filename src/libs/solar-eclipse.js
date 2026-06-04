@@ -1,4 +1,4 @@
-import { horner, modf } from "astronomia/base";
+import { horner, modf, pmod } from "astronomia/base";
 import { solar } from "astronomia/eclipse";
 import { binaryRoot } from "astronomia/iterate";
 
@@ -12,7 +12,7 @@ export function eclipseInfo(row) {
         const { X, Y, L1, L2 } = row;
         const [date, jdeMax, T0, deltaT] = row.info;
         const [i, f] = modf(jdeMax + 0.5);
-        const tMax = f * 24 - T0;
+        const tMax = pmod(f * 24 - T0 + 12, 24) - 12;
         const JDE0 = i + T0/24 - 0.5;
 
         let distance = hypot(horner(tMax, X), horner(tMax, Y));
@@ -40,7 +40,9 @@ export function eclipseInfo(row) {
             ...row,
             date,
             dt,
+            jdeMax,
             timeMax: moment(dt).utc().format('HH:mm:ss'),
+            tMax,
             T0,
             JDE0,
             deltaT,

@@ -3,7 +3,6 @@ import { horner, pmod } from 'astronomia/base';
 import EclipseMap from '../EclipseMap.vue';
 import { solarEclipseMapSetting } from '@/composables/solar-eclipse.js';
 
-const TIME_STEP = 30; // second
 const D2R = Math.PI / 180;
 
 const props = defineProps({
@@ -17,9 +16,9 @@ const models = [
     { value: 'ae', title: 'AE' },
 ];
 const slider = reactive({
-    value: 0,
-    min: computed(() => Math.floor(props.data.timeP[0] * 3600 / TIME_STEP) - 120 / TIME_STEP),
-    max: computed(() => Math.floor(props.data.timeP[3] * 3600 / TIME_STEP) + 120 / TIME_STEP),
+    value: props.data.tMax,
+    min: computed(() => props.data.timeP[0] - 2/60),
+    max: computed(() => props.data.timeP[3] + 2/60),
     intervalID: null,
     isPlay: computed(() => slider.intervalID != null),
 });
@@ -30,7 +29,7 @@ function play() {
         slider.intervalID = null;
     } else {
         slider.intervalID = setInterval(() => {
-            slider.value++;
+            slider.value += 30/3600; // 30 second
             if (slider.value >= slider.max) {
                 clearInterval(slider.intervalID);
                 slider.intervalID = null;
@@ -41,7 +40,7 @@ function play() {
 
 const Textures = ['Earth1', 'Earth2'];
 const mapState = reactive({
-    time: computed(() => slider.value * TIME_STEP / 3600),
+    time: computed(() => slider.value),
     cameraPos: computed(() => ({
         lon: pmod(horner(mapState.time, props.data.M), 360) * D2R,
         lat: horner(mapState.time, props.data.D) * D2R,
