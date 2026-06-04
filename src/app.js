@@ -9,6 +9,7 @@ import '@mdi/font/css/materialdesignicons.css';
 import './assets/css/app.css';
 import './plugins/format';
 import main from './plugins/main';
+import App from './App.vue';
 
 registerSW({ immediate: true });
 const router = createRouter({
@@ -16,7 +17,6 @@ const router = createRouter({
     routes,
 });
 
-const App = { render: () => h(RouterView) };
 createApp(App)
     .use(vuetify)
     .use(router)

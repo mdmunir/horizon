@@ -11,7 +11,6 @@ import { darkMode } from '@/composables/global';
             <Toast></Toast>
             <Location></Location>
             <Prayer></Prayer>
-            END PAGE
         </div>
     </v-app>
 </template>

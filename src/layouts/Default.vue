@@ -1,27 +1,21 @@
 <script setup>
-import { darkMode } from '@/composables/global';
-import { reactive } from 'vue';
+import { darkMode, drawerState } from '@/composables/global';
 import Main from './Main.vue';
 import SideMenu from './SideMenu.vue';
 import menus from './menus';
 
-const state = reactive({
-    clipped: false,
-    drawer: true,
-    fixed: false,
-});
 </script>
 <template>
     <Main>
-        <v-navigation-drawer v-model="state.drawer" :mini-variant="false" :clipped="state.clipped" fixed app>
+        <v-navigation-drawer v-model="drawerState" fixed app>
             <v-list>
                 <v-list-item :prepend-avatar="appLogo" subtitle="Horison" title="Dee" to="/"></v-list-item>
             </v-list>
             <v-divider></v-divider>
             <SideMenu :menus="menus" />
         </v-navigation-drawer>
-        <v-app-bar :clipped-left="state.clipped" fixed app>
-            <v-app-bar-nav-icon @click.stop="state.drawer = !state.drawer" />
+        <v-app-bar fixed app>
+            <v-app-bar-nav-icon @click.stop="drawerState = !drawerState"/>
             <LocationInfo></LocationInfo>
             <PrayerInfo></PrayerInfo>
             <v-spacer></v-spacer>

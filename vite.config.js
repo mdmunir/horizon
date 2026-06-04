@@ -19,10 +19,6 @@ export default defineConfig(() => {
                 sourcePath: [
                     { path: 'src/pages' },
                 ],
-                layout: {
-                    default: 'src/layouts/Default.vue',
-                    main: 'src/layouts/Main.vue',
-                },
                 output: 'src/auto-routes.js',
             }),
             vue(),
@@ -52,11 +48,15 @@ export default defineConfig(() => {
             }),
             VitePWA({
                 registerType: 'autoUpdate', // Options: 'autoUpdate' or 'prompt'
-                includeAssets: ['favicon.ico'],
+                includeAssets: [
+                    'favicon.ico', 'images/earth1.png', 'images/earth2.jpg', 'data/bessel-data-c20.json', 
+                    '**/*.{woff,woff2,eot,ttf,svg}',
+                ],
                 manifest: {
                     name: 'Horizon',
                     short_name: 'Horizon',
                     description: 'Astronomical application build with vsop87 and ELP2000',
+                    display: 'standalone',
                     theme_color: '#4dbf85',
                     icons: [
                         {

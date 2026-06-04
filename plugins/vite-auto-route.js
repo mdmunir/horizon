@@ -25,9 +25,9 @@ function listFiles(dir, prefix = '/') {
 function buildRoutes(pages) {
     const routes = {};
     Object.entries(pages).forEach(([path, page]) => {
-        var matches = path.match(/^(?<key>[^\@]+)(\@(?<view>[\w\-]+))?$/);
+        var matches = path.match(/^(?<key>[^\@\$]+)(\@(?<layout>[\w\-]+))?(\$(?<view>[\w\-]+))?$/);
         if (matches) {
-            var { key, view } = matches.groups;
+            var { key, view, layout } = matches.groups;
             view = view || 'default';
             if (routes[key]) {
                 routes[key].components[view] = `<<${page}>>`;
@@ -52,6 +52,9 @@ function buildRoutes(pages) {
                     components: { [view]: `<<${page}>>` },
                     props: { [view]: true },
                 };
+            }
+            if(layout){
+                routes[key].meta = {layout: layout};
             }
         }
     });
@@ -92,24 +95,24 @@ export default function AutoRoute(options) {
             return f;
         }
         const REGEX_IMPORT1 = /import (\w+) from \"(.+)\";$/gm;
-        const REGEX_IMPORT2 = /\"\<\<([^\>]+)\>\>(\<\<LAYOUT\>\>)?\"/g;
+        const REGEX_IMPORT2 = /\"\<\<([^\>]+)\>\>\"/g;
         content = content.replace(REGEX_IMPORT1, (_, m, f) => {
             let file = aliases ? toRelative(f) : f;
             return `import ${m} from "${file}";`;
         });
         if (lazy) {
-            content = content.replace(REGEX_IMPORT2, (_, f, ly) => {
+            content = content.replace(REGEX_IMPORT2, (_, f) => {
                 let file = aliases ? toRelative(f) : f;
-                return `() => import("${file}")` + (ly ? '.then(m => wrapLayout(m))' : '');
+                return `() => import("${file}")`;
             }).replace('<<M_PAGES>>', '');
         } else {
             const mPages = [];
-            content = content.replace(REGEX_IMPORT2, (_, f, ly) => {
+            content = content.replace(REGEX_IMPORT2, (_, f) => {
                 let file = aliases ? toRelative(f) : f;
                 let m_page = 'm_page_' + mPages.length;
                 mPages.push(`import ${m_page} from "${file}";`);
-                return ly ? `wrapLayout({default: ${m_page}}).default` : m_page;
-            }).replace('<<M_PAGES>>', '\n' + mPages.join('\n') + '\n');
+                return m_page;
+            }).replace('<<M_PAGES>>', mPages.join('\n') + '\n\n');
         }
         return content;
     }
@@ -126,54 +129,7 @@ export default function AutoRoute(options) {
             routes = routes.concat(buildRoutes(pages));
         });
 
-        let content = '';
-        if (config.layout) {
-            const layouts = [];
-            const imports = [];
-            Object.entries(config.layout).forEach(([k, f], ix) => {
-                imports.push(`import m_layout_${ix} from ${JSON.stringify(resolve(f))};`);
-                k = /^\w+$/.test(k) ? k : JSON.stringify(k);
-                layouts.push(`  ${k}: m_layout_${ix}`);
-            });
-            let s = JSON.stringify(layouts, null, 2).replace(/\"(\w+)\"\:/g, '$1:');
-            content += `import {h, defineComponent} from 'vue';
-<<M_PAGES>>
-${imports.join('\n')}
-
-const Layouts = {
-${layouts.join(',\n')}
-};
-
-function wrapLayout(module) {
-    const child = module.default;
-    var layout = child.layout;
-    if (layout === undefined) {
-        layout = Layouts.default;
-    } else if (typeof layout === 'string') {
-        layout = Layouts[layout];
-    }
-    if (layout) {
-        return {
-            default: defineComponent({
-                name: 'LayoutWrapped',
-                props: child.props,
-                setup(props, { attrs, slots }) {
-                    return () => h(layout, attrs, { default: () => h(child, props, slots) });
-                }
-            }),
-        };
-    }
-    return module;
-}
-
-`;
-
-            routes.forEach(route => {
-                if (route.components.default) {
-                    route.components.default = route.components.default + '<<LAYOUT>>';
-                }
-            });
-        }
+        let content = '<<M_PAGES>>';
 
         let s = JSON.stringify(routes, null, 2).replace(/\"(\w+)\"\:/g, '$1:');
         content += `export const routes = ${s};

@@ -84,10 +84,10 @@ function save() {
         <v-col cols="12" md="9">
             <v-row density="compact">
                 <v-col cols="12">
-                    <v-slider v-model="slider.value" :min="slider.min" :max="slider.max">
+                    <v-slider density="compact" v-model="slider.value" :min="slider.min" :max="slider.max">
                         <template #prepend>
-                            <v-icon icon="mdi-content-save" @click="save()"></v-icon>
-                            <v-icon icon="mdi-camera" @click="map.snapshot({filename:`solar-eclipse-${date}.png`})"></v-icon>
+                            <v-icon icon="mdi-content-save" @click="save()" :disabled="slider.isPlay"></v-icon>
+                            <v-icon icon="mdi-camera" @click="map.snapshot({filename:`solar-eclipse-${date}.png`})" :disabled="slider.isPlay"></v-icon>
                             <v-icon :icon="slider.isPlay ? 'mdi-pause' : 'mdi-play'" @click="play()"></v-icon>
                         </template>
                         <template #append>{{ mapState.timeLabel }}</template>
@@ -112,7 +112,7 @@ function save() {
                 </v-col>
                 <v-col cols="12" v-if="solarEclipseMapSetting.type == 'globe'">
                     <v-checkbox density="compact" hide-details v-model="solarEclipseMapSetting.control"
-                        label="Rotate"></v-checkbox>
+                        label="Rotate Control"></v-checkbox>
                 </v-col>
                 <v-col cols="6">
                     <v-checkbox density="compact" hide-details v-model="solarEclipseMapSetting.shadow"
@@ -123,10 +123,10 @@ function save() {
                         label="Path"></v-checkbox>
                 </v-col>
                 <v-col cols="12">
-                    <v-slider v-model="solarEclipseMapSetting.scale" :min="20" :max="100" label="Scale"></v-slider>
+                    <v-slider density="compact" v-model="solarEclipseMapSetting.scale" :min="20" :max="100" label="Scale"></v-slider>
                 </v-col>
                 <v-col cols="12">
-                    <v-slider v-model="solarEclipseMapSetting.lineWidth" :min="0.1" :max="3.0"
+                    <v-slider density="compact" v-model="solarEclipseMapSetting.lineWidth" :min="0.1" :max="3.0"
                         label="Line Width"></v-slider>
                 </v-col>
             </v-row>

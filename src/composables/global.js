@@ -14,6 +14,8 @@ export const darkMode = computed({
     }
 });
 
+export const drawerState = ref(true);
+
 class Bus {
     constructor() {
         this.events = {};
