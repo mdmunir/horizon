@@ -1,6 +1,6 @@
 <script setup>
 import { RouterView, useRoute } from 'vue-router';
-import { eclipseDecade } from '@/libs/solar-eclipse';
+import { eclipseDecade } from '@/composables/solar-eclipse';
 
 const route = useRoute();
 const date = computed(() => route.params.date);
@@ -11,8 +11,8 @@ watch(date, val => {
 }, { immediate: true });
 
 const tabs = {
-    '/solar-eclipse/[date]/index': 'General',
-    '/solar-eclipse/[date]/map': 'Map',
+    '/solar-eclipse/list/[date]/': 'General',
+    '/solar-eclipse/list/[date]/map': 'Map',
 };
 const tabChildren = computed(() => Object.entries(tabs).map(([name, label]) => {
     let to = name.replace('[date]', route.params.date).replace(/\/index$/, '');

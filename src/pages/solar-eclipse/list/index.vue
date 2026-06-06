@@ -1,6 +1,6 @@
 <script setup>
 import { useRoute, RouterLink } from 'vue-router';
-import { eclipseDecade } from '@/libs/solar-eclipse';
+import { eclipseDecade } from '@/composables/solar-eclipse';
 
 const route = useRoute();
 
@@ -52,20 +52,22 @@ watch(dc, val => eclipseDecade.decade = val, { immediate: true });
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Greatest Eclipse</th>
                                 <th>Type</th>
-                                <th>Magnitude</th>
-                                <th>Distance</th>
+                                <th>Greatest Eclipse</th>
+                                <th>P1</th>
+                                <th>P4</th>
+                                <th>Gamma</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="row in eclipseDecade.rows">
-                                <td><router-link :to="`/solar-eclipse/${row.info[0]}`">{{ row.info[0] }}</router-link>
+                                <td><router-link :to="`/solar-eclipse/list/${row.date}`">{{ row.date }}</router-link>
                                 </td>
-                                <td>{{ row.timeMax }}</td>
                                 <td>{{ row.sType }}</td>
-                                <td>{{ row.magnitude }}</td>
-                                <td>{{ row.distance }}</td>
+                                <td>{{ row.timeMax }}</td>
+                                <td>{{ moment((row.JDE0 + row.timeP[0]/24).toDate()).utc().format('HH:mm:ss') }}</td>
+                                <td>{{ moment((row.JDE0 + row.timeP[3]/24).toDate()).utc().format('HH:mm:ss') }}</td>
+                                <td>{{ row.distance.toFixed(8) }}</td>
                             </tr>
                         </tbody>
                     </v-table>

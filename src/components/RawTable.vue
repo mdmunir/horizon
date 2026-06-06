@@ -1,5 +1,6 @@
 <script setup>
 import format from '@/composables/format';
+import { copyClipboard, downloadText } from '@/composables/global';
 import moment from 'moment';
 const props = defineProps({
     columns: Array,
@@ -58,23 +59,6 @@ const content = computed(() => {
 ${tableRows.value}${props.footer ? '\n' + props.footer : ''}`;
 });
 
-function download() {
-    const url = URL.createObjectURL(new Blob([content.value], { type: "text/plain" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${props.title.replace(/[^\w]/g, '_')}_${moment().format('YYYYMMDD_HHmmss')}.txt`;
-    a.click();
-
-    URL.revokeObjectURL(url);
-}
-
-function copy() {
-    const blob = new Blob([content.value], { type: "text/plain" });
-    const data = [new ClipboardItem({ "text/plain": blob })];
-    navigator.clipboard.write(data);
-    $bus.emit('toast', 'Data sudah tercopy');
-}
-
 const showTable = ref(true);
 
 </script>
@@ -82,8 +66,8 @@ const showTable = ref(true);
     <v-card>
         <v-toolbar class="gradient-orange" density="compact" flat :title="title">
             <v-spacer></v-spacer>
-            <v-btn @click="download()" icon="mdi-content-save" density="compact"></v-btn>
-            <v-btn @click="copy()" icon="mdi-content-copy" density="compact"></v-btn>
+            <v-btn @click="downloadText(content, `${title.replace(/[^\w]/g, '_')}_${moment().format('YYYYMMDD_HHmmss')}.txt`)" icon="mdi-content-save" density="compact"></v-btn>
+            <v-btn @click="copyClipboard(content)" icon="mdi-content-copy" density="compact"></v-btn>
             <v-btn @click="showTable = !showTable" :icon="showTable ? 'mdi-menu-up' : 'mdi-menu-down'"
                 density="compact"></v-btn>
         </v-toolbar>

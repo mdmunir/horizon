@@ -9,6 +9,9 @@ export default function format(val, format) {
     if (typeof format === 'function') {
         return format(val);
     } else if (typeof format === 'string') {
+        if(val === null || val === undefined){
+            return val;
+        }
         const match = format.match(/^(\w+)(\|(.+))?$/);
         if (match) {
             switch (match[1]) {
@@ -33,5 +36,5 @@ export default function format(val, format) {
             }
         }
     }
-    return val.toString();
+    return (val === null || val === undefined) ? val : val.toString();
 }

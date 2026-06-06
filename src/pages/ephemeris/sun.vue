@@ -3,7 +3,7 @@ import RawTable from '@/components/RawTable.vue';
 import { headTitle } from '@/composables/headTitle';
 import { LocationState } from '@/composables/store';
 import locations from '@/data/locations';
-import { Solar } from '@/libs/position';
+import { Solar } from '@/composables/position';
 
 const altitudes = [
     { id: 't', name: 'Topocentric' },
@@ -15,14 +15,14 @@ const altitudes = [
 const solar = new Solar();
 const columns = [
     { name: 'no', label: 'No', width: 6, align: 'right' },
-    { name: 'dt', label: 'Tanggal', width: 20, format: 'utc|YYYY-MM-DD HH:mm' },
+    { name: 'dt', label: 'Time', width: 20, format: 'utc|YYYY-MM-DD HH:mm' },
     { name: 'jd', label: 'JD', width: 20, align: 'right', format: 'fixed' },
     { name: 'lon', label: 'Longitude', width: 15, align: 'right', format: 'deg' },
     { name: 'lat', label: 'Latitude', width: 15, align: 'right', format: 'dmsc|4' },
     { name: 'ra', label: 'RA', width: 15, align: 'right', format: 'deg' },
     { name: 'dec', label: 'Dec', width: 15, align: 'right', format: 'deg' },
     { name: 'alt', label: 'Altitude', width: 15, align: 'right', format: 'deg' },
-    { name: 'az', label: 'Azimut', width: 15, align: 'right', format: 'deg' },
+    { name: 'az', label: 'Azimuth', width: 15, align: 'right', format: 'deg' },
     { name: 'range', label: 'RANGE', width: 15, align: 'right', format: 'fixed|3' },
     { name: 'hp', label: 'HP', width: 15, align: 'right', format: 'dmsc|4' },
     { name: 'sd', label: 'SD', width: 15, align: 'right', format: 'dmsc|4' },

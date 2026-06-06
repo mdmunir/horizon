@@ -88,43 +88,43 @@ function calcPrayer(y, m, d, loc, c) {
     H0 = (config.alt_subuh || -20) * D2R;
     jd = calcH(JDL, H0, loc, -1);
     subuh = jd;
-    list.push({name: 'subuh', jd});
+    list.push({name: 'subuh', jd, label:'Subuh', prime: true});
 
     // terbit
     H0 = (-0.833 - 0.0347 * sqrt(loc.height || 0)) * D2R;
     jd = calcH(JDL, H0, loc, -1);
-    list.push({name: 'terbit', jd});
+    list.push({name: 'terbit', jd, label:'Sunrise'});
 
     // dhuha    
     H0 = (config.alt_dhuha || 4.5) * D2R;
     jd = calcH(JDL, H0, loc, -1);
-    list.push({name: 'dhuha', jd});
+    list.push({name: 'dhuha', jd, label:'Dhuha'});
 
     // dzuhur
     jd = calcNoon(JDL);
-    list.push({name: 'dzuhur', jd});
+    list.push({name: 'dzuhur', jd, label:'Dzuhur', prime: true});
 
     // ashar
     let alt_ashar = config.alt_ashar || 1;
     dec = calcDec(jd); // alt dzuhur  
     H0 = PI / 2 - atan(alt_ashar + abs(tan(dec - loc.lat)));
     jd = calcH(JDL, H0, loc, 1);
-    list.push({name: 'ashar', jd});
+    list.push({name: 'ashar', jd, label:'Ashar', prime: true});
 
     // maghrib
     H0 = (-0.833 - 0.0347 * sqrt(loc.height || 0)) * D2R;
     jd = calcH(JDL, H0, loc, 1);
-    list.push({name: 'maghrib', jd});
+    list.push({name: 'maghrib', jd, label:'Maghrib', prime: true});
     maghrib = jd;
 
     // isya
     H0 = (config.alt_isya || -18) * D2R;
     jd = calcH(JDL, H0, loc, 1);
-    list.push({name: 'isya', jd});
+    list.push({name: 'isya', jd, label: 'Isya', prime: true});
 
     let selisih = pmod(subuh - maghrib, 1);
     jd = maghrib + selisih / 2;
-    list.push({name: 'tengah', jd});
+    list.push({name: 'tengah', jd, label:'Midnight'});
     // jd = maghrib + 2 * selisih / 3;
     // list.push({name: 'pertiga', jd});
 

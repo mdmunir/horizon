@@ -87,7 +87,7 @@ TElement calcElem(float t){
     result.zeta = zeta;
     result.n2 = n2;
     result.l1 = l1 - zeta * tanF1;
-    result.l2 = l2 - zeta * tanF1;
+    result.l2 = l2 - zeta * tanF2;
     result.theta = theta;
     result.dmu = dmu;
     return result;

@@ -42,7 +42,7 @@ function Save() {
                     </v-card-text>
                 </v-card>
                 <v-card variant="outlined">
-                    <v-card-title>Ihtiyath (menit)</v-card-title>
+                    <v-card-title>Ihtiyath (minute)</v-card-title>
                     <v-card-text>
                         <v-row density="compact">
                             <v-col cols="4">
@@ -50,7 +50,7 @@ function Save() {
                                     :precision="0"></NumberInput>
                             </v-col>
                             <v-col cols="4">
-                                <NumberInput density="compact" v-model="PrayerState.terbit" label="Terbit"
+                                <NumberInput density="compact" v-model="PrayerState.terbit" label="Sunrise"
                                     allow-negative :precision="0"></NumberInput>
                             </v-col>
                             <v-col cols="4">

@@ -1,7 +1,7 @@
 import vuetify from './plugins/vuetify';
-import { createApp, h } from 'vue';
-import routes from 'virtual:auto-route';
-import { createRouter, createWebHashHistory, RouterView } from 'vue-router';
+import { createApp } from 'vue';
+import { routes, handleHotUpdate } from 'vue-router/auto-routes';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import { registerSW } from 'virtual:pwa-register';
 
 import 'vuetify/lib/styles/main.sass';
@@ -22,3 +22,7 @@ createApp(App)
     .use(router)
     .use(main)
     .mount('#app');
+
+if (import.meta.hot) { 
+  handleHotUpdate(router) 
+} 

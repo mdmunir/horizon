@@ -1,30 +1,40 @@
-import path from 'node:path'
-
+import { writeFileSync } from "fs";
+import { resolve } from "path";
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import Components from 'unplugin-vue-components/vite';
 import AutoImport from 'unplugin-auto-import/vite';
 import dotenv from 'dotenv';
-import AutoRoute from './plugins/vite-auto-route';
+import VueRouter from 'unplugin-vue-router/vite';
+import { VueRouterAutoImports } from 'unplugin-vue-router';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
     dotenv.config({ path: __dirname + '/.env' });
     const port = process.env.PORT || 5173;
     const origin = `${process.env.ORIGIN || 'http://localhost'}:${port}`;
-    const base = process.env.BASE_URL || '/';
     return {
         plugins: [
-            AutoRoute({
-                sourcePath: [
-                    { path: 'src/pages' },
-                ],
-                output: 'src/auto-routes.js',
+            VueRouter({
+                routesFolder:['src/pages'],
+                importMode: 'sync',
             }),
+            {
+                name:'write-auto-route',
+                transform(code, id){
+                    const mId = '\0' + 'vue-router/auto-routes';
+                    if(id === mId){
+                        const fullPath = resolve('src/auto-routes.js');
+                        writeFileSync(fullPath, code, 'utf8');                
+                    }
+                    return { code };
+                }
+            },
             vue(),
             AutoImport({
                 imports: [
                     'vue',
+                    VueRouterAutoImports,
                     {
                         'moment': [
                             ['default', 'moment'],
@@ -49,8 +59,7 @@ export default defineConfig(() => {
             VitePWA({
                 registerType: 'autoUpdate', // Options: 'autoUpdate' or 'prompt'
                 includeAssets: [
-                    'favicon.ico', 'images/earth1.png', 'images/earth2.jpg', 'data/bessel-data-c20.json', 
-                    '**/*.{woff,woff2,eot,ttf,svg}',
+                    'favicon.ico', 'images/earth1.png', 'images/earth2.jpg', 'data/bessel-data-c20.json',
                 ],
                 manifest: {
                     name: 'Horizon',
@@ -78,13 +87,14 @@ export default defineConfig(() => {
                     ]
                 },
                 workbox: {
+                    globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,jpeg,woff,woff2,ttf,eot}'],
                     maximumFileSizeToCacheInBytes: 20971520,
                 }
             }),
         ],
         resolve: {
             alias: {
-                '@/': `${path.resolve(__dirname, 'src')}/`,
+                '@/': `${resolve(__dirname, 'src')}/`,
             }
         },
         build: {
@@ -107,6 +117,5 @@ export default defineConfig(() => {
             }
         },
         publicDir: 'src/public',
-        base: base,
     };
 });

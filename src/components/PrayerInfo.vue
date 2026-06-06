@@ -1,7 +1,7 @@
 <script setup>
 import { Location, Prayer } from '@/composables/store';
-import { now } from '@/libs/horison';
-import calcPrayer from '@/libs/prayer';
+import { now } from '@/composables/horison';
+import calcPrayer from '@/composables/prayer';
 import moment from 'moment';
 
 const labels = {

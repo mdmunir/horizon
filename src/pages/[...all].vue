@@ -1,6 +1,8 @@
 <script setup>
-defineOptions({
-    layout: 'main',
+definePage({
+    meta: {
+        layout: 'main',
+    }
 });
 </script>
 <template>

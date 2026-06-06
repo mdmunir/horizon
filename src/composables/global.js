@@ -54,3 +54,20 @@ class Bus {
 
 export const $bus = new Bus();
 export {appLogo};
+
+export function downloadText(content, filename) {
+    const url = URL.createObjectURL(new Blob([content], { type: "text/plain" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || 'output.txt';
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+export function copyClipboard(content) {
+    const blob = new Blob([content], { type: "text/plain" });
+    const data = [new ClipboardItem({ "text/plain": blob })];
+    navigator.clipboard.write(data);
+    $bus.emit('toast', 'Copy to clipboard');
+}

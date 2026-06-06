@@ -4,7 +4,7 @@ import {
     TextureLoader, ShaderMaterial, Mesh,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { generateGIF } from '@/libs/gif-generator';
+import { generateGIF } from '@/composables/gif-generator';
 import vertexShader from './webgl/vertex.c?raw';
 import fragmentShader from './webgl/se-fragment.c?raw';
 import { sincos } from 'astronomia/base';
@@ -118,10 +118,12 @@ function animate() {
     }
 }
 function doScale(v) {
-    let scale = Math.min(100, Math.max(10, v));
-    let width = Math.floor(el.value.offsetWidth * scale / 100);
-    let height = props.type == 'mer' ? width / 2 : width;
-    renderer.setSize(width, height);
+    if(el.value){
+        let scale = Math.min(100, Math.max(10, v));
+        let width = Math.floor(el.value.offsetWidth * scale / 100);
+        let height = props.type == 'mer' ? width / 2 : width;
+        renderer.setSize(width, height);
+    }
 }
 function resize(time = 0) {
     setTimeout(function () {
@@ -195,7 +197,6 @@ watch(() => props.texture, v => {
     uniform.txtr.value = LOADED[v];
     render();
 });
-
 
 async function download(callback, options = {}) {
     animated = false;

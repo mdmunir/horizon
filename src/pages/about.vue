@@ -1,7 +1,9 @@
 <script setup>
 import { RouterLink } from 'vue-router';
-defineOptions({
-    layout: 'main',
+definePage({
+    meta: {
+        layout: 'main',
+    }
 });
 </script>
 <template>
