@@ -48,7 +48,8 @@ const tableRows = computed(() => {
                     val = format(val, column.format);
                 }
             }
-            line.push(val.toString().align(column.align || 'left', column.width || 16));
+            let str = (val === null || val === undefined || typeof val === 'undefined') ? '' : val.toString();
+            line.push(str.align(column.align || 'left', column.width || 16));
         });
         return line.join('  ');
     }).join('\n');

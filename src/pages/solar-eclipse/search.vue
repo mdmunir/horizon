@@ -2,22 +2,33 @@
 import { eclipseCentury, search } from '@/composables/solar-eclipse';
 import { LocationState } from '@/composables/store';
 import locations from '@/data/locations';
+import timezones from '@/data/timezone';
 
+const types = ['', 'P', 'A', 'AT', 'P', 'U', 'T'];
 function formatTime(val){
-    if(val){
-        return moment(val.toDate()).utc().format('HH:mm:ss');
+    if(val && val.dt){
+        if(val.riset){
+            return moment(val.dt).utcOffset(LocationState.offset / 60).format('HH:mm') + `(${val.riset})`;
+        }
+        return moment(val.dt).utcOffset(LocationState.offset / 60).format('HH:mm:ss');
     }
     return '-'
 }
+
 const columns = [
     { name: 'ix', label: 'No', width: 6, align: 'right' },
     { name: 'date', label: 'Date', width: 12 },
-    { name: 'sType', label: 'Type', width: 12 },
-    { name: 'P1', label: 'P1', width: 12, format: formatTime, align: 'center' },
-    { name: 'U1', label: 'U1', width: 12, format: formatTime, align: 'center' },
-    { name: 'middle', label: 'Middle', width: 12, format: formatTime, align: 'center' },
-    { name: 'U2', label: 'U2', width: 12, format: formatTime, align: 'center' },
-    { name: 'P2', label: 'P2', width: 12, format: formatTime, align: 'center' },
+    { name: 'type', label: 'Type', width: 8, format: v => types[v], align: 'center' },
+    { name: 'contacts.0', label: 'P1', width:12, format: formatTime, align: 'center'},
+    { name: 'contacts.0.alt', label: 'P1 Alt', width:8, format: 'deg|2', align: 'right'},
+    { name: 'contacts.1', label: 'U1', width:12, format: formatTime, align: 'center'},
+    { name: 'contacts.2', label: 'Middle', width:12, format: formatTime, align: 'center'},
+    { name: 'contacts.2.alt', label: 'Mid Alt', width:8, format: 'deg|2', align: 'right'},
+    { name: 'contacts.3', label: 'U2', width:12, format: formatTime, align: 'center'},
+    { name: 'contacts.4', label: 'P4', width:12, format: formatTime, align: 'center'},
+    { name: 'contacts.4.alt', label: 'P4 Alt', width:8, format: 'deg|2', align: 'right'},
+    { name: 'mag', label: 'Magnitude', width:10, format: 'fixed', align: 'right'},
+
 ];
 
 const centuries = Array(30).keys().map(c => ({value:c, title:`${c}00 - ${c}99`}));
@@ -27,16 +38,29 @@ const position = reactive({
     lat: LocationState.lat,
 });
 
-const rows = computed(() => eclipseCentury.rows.map(data => search(data, position)).filter(v => !!v).map((v,ix) => ({...v, ix:ix+1})));
+const rows = ref([]);
 
 function locationChanged(val) {
     Object.assign(LocationState, val);
 }
 
+function zoneChanged(val) {
+    if (val) {
+        LocationState.offset = val.offset;
+        LocationState.zone_name = val.name;
+    }
+}
+
 function generate(){
     position.lon = LocationState.lon;
     position.lat = LocationState.lat;
-    eclipseCentury.century = century.value;
+    eclipseCentury.load(century.value).then(()=>{
+        rows.value = eclipseCentury.rows
+            //.slice(36,37)
+            .map(data => search(data, position))
+            .filter(v => v && v.type > 0)
+            .map((v,ix) => ({...v, ix:ix+1}));
+    });
 }
 </script>
 <template>
@@ -66,10 +90,20 @@ function generate(){
                                 <v-col cols="12">
                                     <v-select density="compact" label="Range" v-model="century" :items="centuries"></v-select>
                                 </v-col>
-                                <v-col cols="12">
-                                    <v-btn @click="generate()">Search</v-btn>
+                                <v-col cols="8">
+                                    <Autocomplete density="compact" v-model="LocationState.zone_id" @changed="zoneChanged"
+                                        :items="timezones" label="Timezone"></Autocomplete>
+                                </v-col>
+                                <v-col cols="4">
+                                    <NumberInput density="compact" v-model="LocationState.offset" label="Zone Offset" :precision="0"
+                                        allow-negative></NumberInput>
                                 </v-col>
                             </v-row>
+                        </v-col>
+                    </v-row>
+                    <v-row density="compact">
+                        <v-col>
+                            <v-btn @click="generate()" color="primary">Search</v-btn>
                         </v-col>
                     </v-row>
                 </Panel>

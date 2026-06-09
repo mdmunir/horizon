@@ -25,6 +25,7 @@ TLocData loc;
 uniform float tanF1;
 uniform float tanF2;
 uniform float time;
+uniform float deltaT;
 uniform int isAe;
 uniform int isPath;
 uniform int isShadow;
@@ -66,7 +67,7 @@ TElement calcElem(float t){
     float l1 = horner(t, L1);
     float l2 = horner(t, L2);
     
-    float theta = mu + loc.lon;
+    float theta = mu + loc.lon - deltaT / 13713.44;
     float xi = loc.rhoC * sin(theta);
     float eta = loc.rhoS * cos(d) - loc.rhoC * sin(d) * cos(theta);
     float zeta = loc.rhoS * sin(d) + loc.rhoC * cos(d) * cos(theta);

@@ -127,9 +127,9 @@ headTitle.value = 'Sun Position';
                             </v-row>
                         </v-col>
                     </v-row>
-                    <v-row>
+                    <v-row density="compact">
                         <v-col>
-                            <v-btn @click="generate()">Generate</v-btn>
+                            <v-btn @click="generate()" color="primary">Generate</v-btn>
                         </v-col>
                     </v-row>
                 </Panel>

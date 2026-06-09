@@ -26,12 +26,17 @@ const selected = computed({
     },
     set(v){}
 });
+const cy = computed(() => Math.floor(eclipseDecade.decade / 10));
+const dc = computed(() => eclipseDecade.decade % 10);
 </script>
 <template>
     <v-container fluid>
         <v-row density="compact">
             <v-col cols="12">
                 <Panel :title="`Solar Eclipse ${date}`">
+                    <template #toolbar>
+                        <v-btn density="compact" icon="mdi-arrow-left" :to="`/solar-eclipse/list?cy=${cy}&dc=${dc}`"></v-btn>
+                    </template>
                     <v-tabs v-model="selected">
                         <v-tab v-for="ch in tabChildren" :value="ch.name" :to="ch.to">{{ ch.label }}</v-tab>
                     </v-tabs>
