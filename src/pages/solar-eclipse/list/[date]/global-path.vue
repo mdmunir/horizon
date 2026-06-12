@@ -21,6 +21,7 @@ function formatTime(val, row){
 
 function formatTz(val){
     let res = val == 0 ? ' ' : (val < 0 ? '-' : '+');
+    val = Math.abs(val);
     res += (Math.floor(val/60).toString().padStart(2, '0'));
     res += ':';
     res += (Math.floor(val % 60).toString().padStart(2, '0'));
