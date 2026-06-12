@@ -59,7 +59,8 @@ export default defineConfig(() => {
             VitePWA({
                 registerType: 'autoUpdate', // Options: 'autoUpdate' or 'prompt'
                 includeAssets: [
-                    'favicon.ico', 'images/earth1.png', 'images/earth2.jpg', 'data/bessel-data-c20.json',
+                    'favicon.ico', 'images/earth1.png', 'images/earth2.jpg', 
+                    'data/bessel-data-c20.json','data/bessel-data-c19.json',
                 ],
                 manifest: {
                     name: 'Horizon',

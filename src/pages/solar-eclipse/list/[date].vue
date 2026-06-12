@@ -12,7 +12,8 @@ watch(date, val => {
 
 const tabs = {
     '/solar-eclipse/list/[date]/': 'General',
-    '/solar-eclipse/list/[date]/map': 'Map',
+    '/solar-eclipse/list/[date]/global-path': 'Global Path',
+    '/solar-eclipse/list/[date]/animation': 'Animation',
 };
 const tabChildren = computed(() => Object.entries(tabs).map(([name, label]) => {
     let to = name.replace('[date]', route.params.date).replace(/\/index$/, '');
@@ -26,8 +27,6 @@ const selected = computed({
     },
     set(v){}
 });
-const cy = computed(() => Math.floor(eclipseDecade.decade / 10));
-const dc = computed(() => eclipseDecade.decade % 10);
 </script>
 <template>
     <v-container fluid>
@@ -35,7 +34,7 @@ const dc = computed(() => eclipseDecade.decade % 10);
             <v-col cols="12">
                 <Panel :title="`Solar Eclipse ${date}`">
                     <template #toolbar>
-                        <v-btn density="compact" icon="mdi-arrow-left" :to="`/solar-eclipse/list?cy=${cy}&dc=${dc}`"></v-btn>
+                        <v-btn density="compact" icon="mdi-arrow-left" :to="`/solar-eclipse/list?dc=${eclipseDecade.decade}`"></v-btn>
                     </template>
                     <v-tabs v-model="selected">
                         <v-tab v-for="ch in tabChildren" :value="ch.name" :to="ch.to">{{ ch.label }}</v-tab>
@@ -44,6 +43,7 @@ const dc = computed(() => eclipseDecade.decade % 10);
                     <v-tabs-window v-model="selected">
                         <v-tabs-window-item :value="selected">
                             <RouterView v-if="data" :data="data" :date="date"></RouterView>
+                            <div v-else>Eclipse not found.</div>
                         </v-tabs-window-item>
                     </v-tabs-window>
                 </Panel>

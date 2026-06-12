@@ -4,16 +4,15 @@ import { eclipseDecade } from '@/composables/solar-eclipse';
 
 const route = useRoute();
 
-const decade = computed(() => route.query.dc ? parseInt(route.query.dc) : 0);
-const century = computed(() => route.query.cy === '0' ? 0 : parseInt(route.query.cy || '20'));
-const dc = computed(() => century.value * 10 + decade.value);
+const decade = computed(() => parseInt(route.query.dc || '202'));
 
 const dcLinks = computed(() => {
+    const cy = Math.floor(decade.value / 10).toString().padStart(2, '0');
     return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(v => {
         return {
-            to: { query: { ...route.query, dc: v } },
-            label: `${century.value}${v}0 - ${century.value}${v}9`,
-            active: v == decade.value,
+            to: { query: { ...route.query, dc: `${cy}${v}` } },
+            label: `${cy}${v}0 - ${cy}${v}9`,
+            active: v == decade.value % 10,
         };
     });
 });
@@ -22,22 +21,22 @@ const cyLinks = computed(() => {
         return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(c => {
             let cy = m * 10 + c;
             return {
-                to: { query: { ...route.query, cy, dc: 0 } },
-                label: m == 0 ? `0${cy}00 - 0${cy}99` : `${cy}00 - ${cy}99`,
-                active: cy == century.value,
+                to: { query: { ...route.query, dc: `${m}${c}0` } },
+                label: `${m}${c}00 - ${m}${c}99`,
+                active: cy == Math.floor(decade.value / 10),
             }
         });
     });
 });
 
-watch(dc, val => eclipseDecade.decade = val, { immediate: true });
+watch(decade, val => eclipseDecade.decade = val, { immediate: true });
 
 </script>
 <template>
     <v-container fluid>
         <v-row density="compact">
             <v-col cols="12">
-                <Panel :title="`Solar Eclipse ${century}${decade}0 - ${century}${decade}9`">
+                <Panel :title="`Solar Eclipse ${decade}0 - ${decade}9`">
                     <ul>
                         <li>
                             <span v-for="link in dcLinks" :key="link.label">
@@ -65,8 +64,8 @@ watch(dc, val => eclipseDecade.decade = val, { immediate: true });
                                 </td>
                                 <td>{{ row.sType }}</td>
                                 <td>{{ row.timeMax }}</td>
-                                <td>{{ moment((row.JDE0 + row.timeP[0]/24).toDate()).utc().format('HH:mm:ss') }}</td>
-                                <td>{{ moment((row.JDE0 + row.timeP[3]/24).toDate()).utc().format('HH:mm:ss') }}</td>
+                                <td>{{ moment((row.JDE0 + row.P1 / 24).toDate()).utc().format('HH:mm:ss') }}</td>
+                                <td>{{ moment((row.JDE0 + row.P4 / 24).toDate()).utc().format('HH:mm:ss') }}</td>
                                 <td>{{ row.distance.toFixed(8) }}</td>
                             </tr>
                         </tbody>

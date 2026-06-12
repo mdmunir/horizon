@@ -17,8 +17,8 @@ const models = [
 ];
 const slider = reactive({
     value: props.data.tMax,
-    min: computed(() => props.data.timeP[0] - 2/60),
-    max: computed(() => props.data.timeP[3] + 2/60),
+    min: computed(() => props.data.P1 - 2/60),
+    max: computed(() => props.data.P4 + 2/60),
     intervalID: null,
     isPlay: computed(() => slider.intervalID != null),
 });

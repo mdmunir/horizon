@@ -1,45 +1,75 @@
 <script setup>
-import { copyClipboard, downloadText } from '@/composables/global';
+import { copyClipboard, downloadText, rawTable } from '@/composables/raw-table';
+import { Location } from '@/composables/store';
 
 const props = defineProps({
     data: {type: Object, required: true},
     date: {type: String},
 });
 
-const content = computed(() => {
-    if (props.data) {
-        const { T0, deltaT, JDE0 } = props.data;
-        let res = '';
-        res += `Solar eclipse ${props.date}
-Contacts:
-         DT            UT
-`;
-        res += props.data.timeP.map((t, ix) => {
-            let res = `P${ix + 1}:`;
-            if (t === null) return res + '        -';
-            res += '    ' + moment((JDE0 + t / 24).toDate()).utc().format('HH:mm:ss');
-            res += '    ' + moment((JDE0 + t / 24 - deltaT / 86400).toDate()).utc().format('HH:mm:ss');
-            return res;
-        }).join('\n') + '\n';
-        res += props.data.timeU.map((t, ix) => {
-            let res = `U${ix + 1}:`;
-            if (t === null) return res + '        -';
-            res += '    ' + moment((JDE0 + t / 24).toDate()).utc().format('HH:mm:ss');
-            res += '    ' + moment((JDE0 + t / 24 - deltaT / 86400).toDate()).utc().format('HH:mm:ss');
-            return res;
-        }).join('\n') + '\n';
+const { abs, PI } = Math;
+const R2D = 180 / PI;
+const latLon = computed(() => {
+    let lat = Location.lat * R2D;
+    let lon = Location.lon * R2D;
+    return `${abs(lat).toFixed(4)} ${lat > 0 ? 'N' : 'S'}, ${abs(lon).toFixed(4)} ${lon > 0 ? 'W' : 'E'}`;
+});
 
-        res += `
-Polynomial Besselian Elements (T0 = ${props.data.T0}):
-n             0           1           2           3\n`;
-        const map = { X: 'x ', Y: 'y ', D: 'd ', L1: 'l1', L2: 'l2', M: 'μ ', F: 'Tan ƒ          ' };
-        res += Object.entries(map).map(([key, label]) => {
-            const val = props.data[key];
-            return label + '     ' + val.map(v => v.toFixed(8).align('right', 13)).join('');
-        }).join('\n');
+const formatUtc = v => v ? moment(v).utc().format('HH:mm:ss') : '-';
+const formatLocal = v => v ? moment(v).utcOffset(Location.offset).format('HH:mm:ss') : '-';
 
-        return res;
+function formatUtc2(val, row){
+    if(row && val){
+        if(row.riset){
+            return moment(val).utc().format('HH:mm') + `(${row.riset})`;
+        }
+        return moment(val).utc().format('HH:mm:ss');
     }
+    return '-'
+}
+function formatLocal2(val, row){
+    if(row && val){
+        if(row.riset){
+            return moment(val).utcOffset(Location.offset).format('HH:mm') + `(${row.riset})`;
+        }
+        return moment(val).utcOffset(Location.offset).format('HH:mm:ss');
+    }
+    return '-'
+}
+const global = computed(() => {
+    const columns = [
+        {name: 'name',label:'Event', width:10},
+        {name: 'dt', label: 'Time UTC', format: formatUtc, width:10, align:'center'},
+        {name: 'dt', label: 'Time Local', format: formatLocal, width:10, align:'center'},
+    ];
+    return rawTable(props.data.events, columns, {headerLine: false});
+});
+
+const local = computed(() => {
+    const data = localCircumstance(props.data, Location);
+    if(data.type == 0){
+        return 'Eclipse is not visible from your location.';
+    }
+    const columns = [
+        {name:'title',label:'Event', width:10},
+        {name: 'dt', label: 'Time UTC', format: formatUtc2, width:10, align:'center'},
+        {name: 'dt', label: 'Time Local', format: formatLocal2, width:10, align:'center'},
+        {name: 'alt', label: 'Alt', format: 'deg|2', width:10, align:'right'},
+        {name: 'mag', label: 'Magnitude', 
+            format: (v, row) => (v && row.name == 'Mid') ? v.toFixed(4) : '',
+            width:10, align:'right'
+        },
+    ];
+    return rawTable(data.events, columns, {headerLine: false});
+});
+
+const element = computed(() => {
+    const map = { X: 'x ', Y: 'y ', D: 'd ', L1: 'l1', L2: 'l2', M: 'μ ', F: 'Tan ƒ          ' };
+    const header = 'n             0           1           2           3\n';
+    return header + Object.entries(map).map(([key, label]) => {
+        const val = props.data[key];
+        return label + '     ' + val.map(v => v.toFixed(8).align('right', 13)).join('');
+    }).join('\n');
 });
 
 </script>
@@ -49,6 +79,15 @@ n             0           1           2           3\n`;
             <v-btn @click="downloadText(content, `solar-eclipse-${date}.txt`)" icon="mdi-content-save" density="compact"></v-btn>
             <v-btn @click="copyClipboard(content)" icon="mdi-content-copy" density="compact"></v-btn>
         </template>
-        <pre>{{ content }}</pre>
+        <pre>Solar Eclipse {{date}}.
+Global Circumstance:
+{{ global }}
+
+Local Circumstance at {{ Location.name }}({{ latLon }}):
+{{ local }}
+
+Besselian Element. T0={{data.T0}}:
+{{ element }}
+        </pre>
     </Panel>
 </template>

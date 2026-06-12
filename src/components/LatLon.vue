@@ -39,6 +39,6 @@ const maskaOption = {
 }
 </script>
 <template>
-    <v-text-field v-model="state.value" v-maska="maskaOption" append-inner-icon="mdi-swap-vertical" @click:append-inner="state.sign = -1 * state.sign" :prefix="state.signLabel">
+    <v-text-field v-model="state.value" v-maska="maskaOption" append-inner-icon="mdi-swap-vertical" @click:append-inner="state.sign = -1 * state.sign" :prefix="state.signLabel" class="number-input">
     </v-text-field>
 </template>

@@ -75,8 +75,19 @@ table th.action{
    max-width: 150px;
 }
 
+.number-input input{
+   text-align: right;
+}
+.d-right-align input{
+   text-align: right;
+}
+.d-left-align input{
+   text-align: left;
+}
+
 @keyframes shine {
    to {
      background-position-x: -200%;
    }
 }
+

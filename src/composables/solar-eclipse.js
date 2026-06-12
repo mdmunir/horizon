@@ -3,63 +3,73 @@ import { solar, TYPE } from "astronomia/eclipse";
 import { binaryRoot } from "astronomia/iterate";
 
 const types = ['None', 'Partial', 'Annular', 'Annular Total', 'Penumbral', 'Umbral', 'Total'];
-const { hypot, abs, PI, sin, cos, tan, atan, asin, acos, sqrt, floor} = Math;
+const { hypot, abs, PI, sin, cos, tan, atan, asin, acos, sqrt, floor } = Math;
 const D2R = PI / 180;
 
-export function eclipseInfo(row) {
-    const { X, Y, L1, L2, D, M, F, date, jdeMax, T0, deltaT } = row;
+export function globalCircumstance(data) {
+    const { X, Y, L1, L2, D, M, F, date, jdeMax, T0, deltaT } = data;
     let y = 2000 + (jdeMax - 2451545.0) / 365.25;
     let e = solar(y);
-    if (e.type) {
-        const [i, f] = modf(jdeMax + 0.5);
-        const tMax = pmod(f * 24 - T0 + 12, 24) - 12;
-        const JDE0 = i + T0 / 24 - 0.5;
 
-        let distance = hypot(horner(tMax, X), horner(tMax, Y));
-        const [rP, rU] = [horner(tMax, L1), abs(horner(tMax, L2))];
-        const isP2 = distance + rP < 1;
-        const isU1 = distance - rU < 1;
-        const isU2 = distance + rU < 1;
-        const sign = [1, -1, -1, 1];
-        const timeP = [true, isP2, isP2, true].map((valid, ix) => {
-            if (!valid) {
-                return null;
-            }
+    const [i, f] = modf(jdeMax + 0.5);
+    const tMax = pmod(f * 24 - T0 + 12, 24) - 12;
+    const JDE0 = i + T0 / 24 - 0.5;
+
+    let distance = hypot(horner(tMax, X), horner(tMax, Y));
+    const [rP, rU] = [horner(tMax, L1), abs(horner(tMax, L2))];
+    const isP2 = distance + rP < 1;
+    const isU1 = distance - rU < 1;
+    const isU2 = distance + rU < 1;
+    const sign = [1, -1, -1, 1];
+    const timeP = [true, isP2, isP2, true].map((valid, ix) => {
+        let dt, t;
+        if (valid) {
             const func = t => hypot(horner(t, X), horner(t, Y)) - sign[ix] * horner(t, L1) - 1;
-            return ix < 2 ? binaryRoot(func, -5, tMax) : binaryRoot(func, tMax, 5);
-        });
-        const timeU = [isU1, isU2, isU2, isU1].map((valid, ix) => {
-            if (!valid) {
-                return null;
-            }
-            const func = t => hypot(horner(t, X), horner(t, Y)) - sign[ix] * abs(horner(t, L2)) - 1;
-            return ix < 2 ? binaryRoot(func, -5, tMax) : binaryRoot(func, tMax, 5);
-        });
-        const dt = jdeMax.toDate();
+            t = ix < 2 ? binaryRoot(func, -5, tMax) : binaryRoot(func, tMax, 5);
+            dt = (JDE0 + t / 24 - deltaT / 86400).toDate();
+        }
         return {
-            X, Y, L1, L2, D, M, F, date, jdeMax, T0, deltaT,
-            dt,
-            timeMax: moment(dt).utc().format('HH:mm:ss'),
-            tMax,
-            JDE0,
-            type: e.type,
-            sType: types[e.type],
-            magnitude: e.magnitude,
-            distance,
-            timeP,
-            timeU,
+            dt, t,
+            name: `P${ix + 1}`,
         };
-    }
+    });
+    const timeU = [isU1, isU2, isU2, isU1].map((valid, ix) => {
+        let dt, t;
+        if (valid) {
+            const func = t => hypot(horner(t, X), horner(t, Y)) - sign[ix] * abs(horner(t, L2)) - 1;
+            t = ix < 2 ? binaryRoot(func, -5, tMax) : binaryRoot(func, tMax, 5);
+            dt = (JDE0 + t / 24 - deltaT / 86400).toDate();
+        }
+        return {
+            dt, t,
+            name: `U${ix + 1}`,
+        };
+    });
+    const dt = (jdeMax - deltaT / 86400).toDate();
     return {
         X, Y, L1, L2, D, M, F, date, jdeMax, T0, deltaT,
+        dt,
+        timeMax: moment(dt).utc().format('HH:mm:ss'),
+        tMax,
+        JDE0,
         type: e.type,
         sType: types[e.type],
-    }
+        magnitude: e.magnitude,
+        distance,
+        P1: timeP[0].t, P4: timeP[3].t,
+        events: [
+            timeP[0], timeU[0], 
+            timeU[1], timeP[1], 
+            {dt, name:'Middle'}, 
+            timeP[2], timeU[2], 
+            timeU[3], timeP[3]
+        ],
+    };
 }
 
 const eclipseData = reactive({
-    cy: null,
     dc: null,
+    cy: null,
     rows: [],
     load(cy) {
         return new Promise((resolve, reject) => {
@@ -82,7 +92,14 @@ const eclipseData = reactive({
     }
 });
 export const eclipseCentury = reactive({
-    century: computed(() => eclipseData.cy),
+    century: computed({
+        get() {
+            return eclipseData.cy;
+        },
+        set(v) {
+            eclipseData.load(v);
+        }
+    }),
     load(cy) {
         return eclipseData.load(cy);
     },
@@ -106,7 +123,7 @@ export const eclipseDecade = reactive({
     },
     rows: computed(() => {
         return eclipseData.rows.filter(row => row.date.charAt(2) == `${eclipseData.dc}`)
-            .map(row => eclipseInfo(row));
+            .map(row => globalCircumstance(row));
     }),
 });
 
@@ -120,10 +137,9 @@ export const solarEclipseMapSetting = reactive({
     lineWidth: 1.0,
 });
 
-export function search(data, position) {
+export function localCircumstance(data, position) {
     const { date, jdeMax, T0, deltaT, X, Y, L1, L2, F } = data;
-    const [i, f] = modf(jdeMax + 0.5);
-    const tMax = pmod(f * 24 - T0 + 12, 24) - 12;
+    const [i,] = modf(jdeMax + 0.5);
     const JDE0 = i + T0 / 24 - 0.5;
 
     const D = data.D.map(v => v * D2R);
@@ -139,6 +155,14 @@ export function search(data, position) {
         lat: position.lat,
         rhoS: 0.99664719 * sin(flatten),
         rhoC: cos(flatten),
+    }
+
+    function calcRise(t) {
+        let d = horner(t, D);
+        let mu = horner(t, M);
+        let theta = mu + loc.lon - deltaT / 13713.44; // h
+        let dmu = horner(t, DM);
+        return { d, theta, dmu, t };
     }
 
     function calcElem(t) {
@@ -167,7 +191,7 @@ export function search(data, position) {
 
         let a = dx - dxi;
         let b = dy - deta;
-        let n = hypot(a,b);
+        let n = hypot(a, b);
         let n2 = n * n; // n2 = n*n
 
         let mag = (l1 - r) / (l1 + l2);
@@ -175,7 +199,12 @@ export function search(data, position) {
 
         let alt = asin(sin(d) * sin(loc.lat) + cos(d) * cos(loc.lat) * cos(theta));
         let visible = alt > -0.00524;
-        return { x, y, d, mu, a, b, u, v, zeta, n, n2, l1, l2, theta, dmu, r, mag, ratio, alt, visible, t };
+        return {
+            x, y, d, mu,
+            a, b, u, v,
+            zeta, n, n2, l1, l2, theta, dmu, r,
+            mag, ratio, alt, visible, t
+        };
     }
 
     function searchMid() {
@@ -204,7 +233,7 @@ export function search(data, position) {
             tmp = sign * sqrt(1 - tmp * tmp) * l1 / n;
 
             dt = (u * a + v * b) / n2 - tmp;
-            
+
             t -= dt;
             if (abs(dt) < 0.00001) {
                 return calcElem(t);
@@ -246,7 +275,7 @@ export function search(data, position) {
         let _h0;
         let dt;
         for (let it = 0; it < 15; it++) {
-            const { d, theta, dmu, alt } = calcElem(t);
+            const { d, theta, dmu } = calcRise(t);
             _acosH0 = (sin(-0.00524) - sin(loc.lat) * sin(d)) / (cos(loc.lat) * cos(d));
             if (_acosH0 > 1.0 || _acosH0 < -1.0) {
                 return null;
@@ -285,17 +314,20 @@ export function search(data, position) {
                 case '11100':
                     C3 = riseSet(1, C3);
                     C3.riset = 'S';
-                    C4 = C3;
+                    C4 = { ...C3 };
                     break;
                 case '11000':
                     mid = riseSet(1, mid);
                     mid.riset = 'S';
-                    C4 = C3 = mid;
+                    C4 = { ...mid };
+                    C3 = { ...mid };
                     break;
                 case '10000':
                     C2 = riseSet(1, C2);
                     C2.riset = 'S';
-                    C4 = C3 = mid = C2;
+                    C4 = { ...C2 };
+                    C3 = { ...C2 };
+                    mid = { ...C2 };
                     type = TYPE.Partial;
                     break;
                 case '01111':
@@ -305,17 +337,20 @@ export function search(data, position) {
                 case '00111':
                     C2 = riseSet(-1, C2);
                     C2.riset = 'R';
-                    C1 = C2;
+                    C1 = { ...C2 };
                     break;
                 case '00011':
                     mid = riseSet(-1, mid);
                     mid.riset = 'R';
-                    C1 = C2 = mid;
+                    C1 = { ...mid };
+                    C2 = { ...mid };
                     break;
                 case '00001':
                     C3 = riseSet(-1, C3);
                     C3.riset = 'R';
-                    C1 = C2 = mid = C3;
+                    C1 = { ...C3 };
+                    C2 = { ...C3 };
+                    mid = { ...C3 };
                     type = TYPE.Partial;
                     break;
                 default:
@@ -334,7 +369,7 @@ export function search(data, position) {
                 case '100':
                     mid = riseSet(1, mid);
                     mid.riset = 'S';
-                    C4 = mid;
+                    C4 = { ...mid };
                     break;
                 case '011':
                     C1 = riseSet(-1, C1);
@@ -343,7 +378,7 @@ export function search(data, position) {
                 case '001':
                     mid = riseSet(-1, mid);
                     mid.riset = 'R';
-                    C1 = mid;
+                    C1 = { ...mid };
                     break;
                 default:
                     type = TYPE.None;
@@ -351,23 +386,28 @@ export function search(data, position) {
             }
         }
     }
-    const contacts = [C1, C2, mid, C3, C4].map(elem => {
+    const Names = ['C1', 'C2', 'Mid', 'C3', 'C4'];
+    const Titles = ['P1', 'U1', 'Middle', 'U2', 'P2'];
+    const events = [C1, C2, mid, C3, C4].map((elem, ix) => {
         if (elem) {
-            elem.dt = (JDE0 + elem.t / 24 - (deltaT - 0.5)/86400).toDate();
-            if(elem.alt <= 0){
+            elem.name = Names[ix];
+            elem.title = Titles[ix];
+            elem.dt = (JDE0 + elem.t / 24 - (deltaT - 0.5) / 86400).toDate();
+            if (elem.alt <= 0) {
                 elem.alt = 0.0;
             }
+            return elem;
         }
-        return elem;
+        return {name: Names[ix], title:Titles[ix]};
     });
-    let {mag, ratio} = mid || {};
-    if(type == TYPE.Annular || type == TYPE.Total){
+    let { mag, ratio } = mid || {};
+    if (type == TYPE.Annular || type == TYPE.Total) {
         mag = ratio;
     }
     return {
         date, jdeMax, T0, JDE0, deltaT, mag, ratio, pattern,
         type, sType: types[type],
-        contacts,
+        events,
     }
 }
 

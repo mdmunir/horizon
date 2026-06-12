@@ -1,6 +1,6 @@
 <script setup>
-import { eclipseCentury, search } from '@/composables/solar-eclipse';
-import { LocationState } from '@/composables/store';
+import { eclipseCentury, localCircumstance } from '@/composables/solar-eclipse';
+import { Location } from '@/composables/store';
 import locations from '@/data/locations';
 import timezones from '@/data/timezone';
 
@@ -8,9 +8,9 @@ const types = ['', 'P', 'A', 'AT', 'P', 'U', 'T'];
 function formatTime(val){
     if(val && val.dt){
         if(val.riset){
-            return moment(val.dt).utcOffset(LocationState.offset / 60).format('HH:mm') + `(${val.riset})`;
+            return moment(val.dt).utcOffset(Location.offset).format('HH:mm') + `(${val.riset})`;
         }
-        return moment(val.dt).utcOffset(LocationState.offset / 60).format('HH:mm:ss');
+        return moment(val.dt).utcOffset(Location.offset).format('HH:mm:ss');
     }
     return '-'
 }
@@ -19,14 +19,14 @@ const columns = [
     { name: 'ix', label: 'No', width: 6, align: 'right' },
     { name: 'date', label: 'Date', width: 12 },
     { name: 'type', label: 'Type', width: 8, format: v => types[v], align: 'center' },
-    { name: 'contacts.0', label: 'P1', width:12, format: formatTime, align: 'center'},
-    { name: 'contacts.0.alt', label: 'P1 Alt', width:8, format: 'deg|2', align: 'right'},
-    { name: 'contacts.1', label: 'U1', width:12, format: formatTime, align: 'center'},
-    { name: 'contacts.2', label: 'Middle', width:12, format: formatTime, align: 'center'},
-    { name: 'contacts.2.alt', label: 'Mid Alt', width:8, format: 'deg|2', align: 'right'},
-    { name: 'contacts.3', label: 'U2', width:12, format: formatTime, align: 'center'},
-    { name: 'contacts.4', label: 'P4', width:12, format: formatTime, align: 'center'},
-    { name: 'contacts.4.alt', label: 'P4 Alt', width:8, format: 'deg|2', align: 'right'},
+    { name: 'events.0', label: 'P1', width:12, format: formatTime, align: 'center'},
+    { name: 'events.0.alt', label: 'P1 Alt', width:8, format: 'deg|2', align: 'right'},
+    { name: 'events.1', label: 'U1', width:12, format: formatTime, align: 'center'},
+    { name: 'events.2', label: 'Middle', width:12, format: formatTime, align: 'center'},
+    { name: 'events.2.alt', label: 'Mid Alt', width:8, format: 'deg|2', align: 'right'},
+    { name: 'events.3', label: 'U2', width:12, format: formatTime, align: 'center'},
+    { name: 'events.4', label: 'P2', width:12, format: formatTime, align: 'center'},
+    { name: 'events.4.alt', label: 'P2 Alt', width:8, format: 'deg|2', align: 'right'},
     { name: 'mag', label: 'Magnitude', width:10, format: 'fixed', align: 'right'},
 
 ];
@@ -56,8 +56,7 @@ function generate(){
     position.lat = LocationState.lat;
     eclipseCentury.load(century.value).then(()=>{
         rows.value = eclipseCentury.rows
-            //.slice(36,37)
-            .map(data => search(data, position))
+            .map(data => localCircumstance(data, position))
             .filter(v => v && v.type > 0)
             .map((v,ix) => ({...v, ix:ix+1}));
     });

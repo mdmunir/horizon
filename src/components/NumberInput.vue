@@ -18,5 +18,5 @@ const opt = reactive({
 });
 </script>
 <template>
-    <v-text-field v-model="model" v-maska="opt"></v-text-field>
+    <v-text-field v-model="model" v-maska="opt" class="number-input"></v-text-field>
 </template>

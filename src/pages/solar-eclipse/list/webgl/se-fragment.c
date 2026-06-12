@@ -1,5 +1,4 @@
-const float _THRESHOLD = 0.0015;
-const float _THRESHOLD2 = 0.0025;
+const float _THRESHOLD = 0.002;
 
 struct TElement{
     float d;
@@ -13,6 +12,8 @@ struct TElement{
     float zeta;
     float dmu;
     float theta;
+    float m;
+    float cosAz;
 };
 struct TLocData{
     float lat;
@@ -80,6 +81,7 @@ TElement calcElem(float t){
     float b = dy - deta;
     float n2 = a*a + b*b;
 
+    result.m = sqrt(u*u + v*v);
     result.d = d;
     result.a = a;
     result.b = b;
@@ -96,7 +98,6 @@ TElement calcElem(float t){
 
 void main(void){
     float THRESHOLD = _THRESHOLD * lineWidth;
-    float THRESHOLD2 = _THRESHOLD2 * lineWidth;
 
     vec2 position = -1.0 + 2.0 * vUv;
     loc.lat = radians(position.y * 90.0);
@@ -131,17 +132,26 @@ void main(void){
                 break;
             }
         }
-        if(mid == 1 && elem.zeta >= 0.0){
-            float m = sqrt(elem.u * elem.u + elem.v * elem.v);
-            if((m - elem.l1) < THRESHOLD && (m - elem.l1) > -THRESHOLD2){ // penumbra
+        if(mid == 1 && elem.zeta >= -0.001){
+            float m = elem.m;
+            float P = abs(m-elem.l1);
+            float U = abs(m-abs(elem.l2));
+            if(P < THRESHOLD){ // penumbra
                 gl_FragColor = vec4(0.0, 0.0, 0.8, 1.0 );
                 pathFound = 1;
-            }else if(elem.l2 > 0.0 && (m - elem.l2) < THRESHOLD && (m - elem.l2) > -THRESHOLD2){ // cincin
-                gl_FragColor = vec4(0.8, 0.0, 0.0, 1.0 );
+            }else if(U < THRESHOLD){ // umbra
+                gl_FragColor = vec4((elem.l2 > 0.0 ? 0.8 : 0.0), 0.0, 0.0, 1.0);
                 pathFound = 1;
-            }else if(elem.l2 < 0.0 && (m + elem.l2) < THRESHOLD && (m + elem.l2) > -THRESHOLD2){ // total
-                gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0 );
+            }else if(m < THRESHOLD && (elem.l2 < -0.005 || elem.l2 > 0.005)){
+                gl_FragColor = vec4((elem.l2 > 0.0 ? 0.8 : 0.0), 0.0, 0.0, 1.0 );
                 pathFound = 1;
+            } else {
+                float alt = sin(loc.lat)*sin(elem.d) + cos(loc.lat)*cos(elem.d)*cos(elem.theta);
+                if(abs(alt) < 2.0*THRESHOLD && elem.m < elem.l1){ 
+                    // puncak gerhana ketika terbit/terbenam
+                    gl_FragColor = vec4(0.0, 0.8, 8.0, 1.0 );
+                    pathFound = 1;
+                }
             }
         }
 
@@ -169,8 +179,8 @@ void main(void){
                     }
                 }
                 if(mid == 1){
-                    float m = sqrt(elem.u * elem.u + elem.v * elem.v);
-                    if((m - elem.l1) < 2.0*THRESHOLD && (m - elem.l1) > -2.0*THRESHOLD2){
+                    float P = abs(elem.m-elem.l1);
+                    if(P < 2.0*THRESHOLD){
                         gl_FragColor = vec4(0.0, 0.8, 8.0, 1.0 );
                         pathFound = 1;
                     }
@@ -182,7 +192,7 @@ void main(void){
     if(isShadow == 1){
         if(pathFound == 0){
             elem = calcElem(time);
-            float m = sqrt(elem.u * elem.u + elem.v * elem.v);
+            float m = elem.m;
             float L1 = elem.l1;
             float L2 = elem.l2;
             if (elem.zeta < 0.0){
@@ -193,7 +203,7 @@ void main(void){
             } else if (L2 > 0.0 && m < L2){
                 gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0 );
             } else if (m < L1){
-                float f = 0.7 - 0.0 * (L1 - m) / L1;
+                float f = 0.7 - 0.5 * (L1 - m) / L1;
                 gl_FragColor = vec4(color.x * f, color.y * f, color.z * f, 1.0 );
             } else{
                 gl_FragColor = vec4( color.x, color.y, color.z, 1.0 );

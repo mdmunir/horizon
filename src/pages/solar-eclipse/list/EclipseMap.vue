@@ -46,6 +46,7 @@ const uniform = {
     time: { value: props.time },
     tanF1: { value: props.bessel.F[0] },
     tanF2: { value: props.bessel.F[1] },
+    deltaT: { value: props.bessel.deltaT },
     X: { value: props.bessel.X },
     Y: { value: props.bessel.Y },
     D: { value: props.bessel.D.map(v => v * D2R) },
