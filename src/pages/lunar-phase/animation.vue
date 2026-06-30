@@ -4,7 +4,6 @@ import { LocationState } from '@/composables/store.js';
 import { deltaTJD } from '@/composables/horizon.js';
 import locations from '@/data/locations';
 import timezones from '@/data/timezone';
-import DateTimeDlg from '@/components/DateTimeDlg.vue';
 
 const SPEEDS = [0, 1, 10, 60, 600, 3600, 21600, 68400].map(v => v / 68400);
 const state = reactive({
@@ -78,7 +77,7 @@ function doNow() {
     stop();
     state.jd = (new Date).toJD();
 }
-const LOCK_ATs = ['moon', 'sun',];
+const LOCK_ATs = ['moon', 'sun', ''];
 
 
 function locationChanged(val) {

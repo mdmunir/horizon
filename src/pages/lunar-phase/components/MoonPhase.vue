@@ -20,10 +20,10 @@ import {
 import * as THREE from 'three';
 import { drawerState } from '@/composables/global.js';
 import { solarLite, moonLite } from '@/composables/position';
-import { sincos } from 'astronomia/base';
+import { pmod, sincos } from 'astronomia/base';
 import { saemundsson } from 'astronomia/refraction';
 
-const { sin, cos, asin, atan2, PI, max, min, floor, ceil, tan } = Math;
+const { sin, cos, asin, atan2, PI, max, min, floor, ceil, tan, hypot } = Math;
 const R2D = 180 / PI;
 const D2R = PI / 180;
 const SCALE = 1000;
@@ -55,7 +55,7 @@ const props = defineProps({
     sun: { type: Boolean, default: true },
     refraction: { type: Boolean, default: true },
 });
-const observerHeight = computed(() => EARTH_RADIUS + props.height/1000/SCALE);
+const observerHeight = computed(() => EARTH_RADIUS + props.height / 1000 / SCALE);
 const el = useTemplateRef('el');
 
 let animated = true;
@@ -240,25 +240,72 @@ sun.position.set(100, 0, 0);
 scene.add(sun);
 
 const altAzGrid = createGrid();
-altAzGrid.position.set(0, observerHeight.value , 0);
+altAzGrid.position.set(0, observerHeight.value, 0);
 scene.add(altAzGrid);
 
 const camera = new PerspectiveCamera(2.0, 1.0, 0.0001 / SCALE, 160000000 / SCALE);
 camera.position.set(0, observerHeight.value, 0);
 
+const panStatus = {
+    isPan: false,
+    x: 0,
+    y: 0,
+    az: 0,
+}
+function cameraAltAz() {
+    const direction = new Vector3();
+    camera.getWorldDirection(direction);
+    let alt = asin(direction.y);
+    let az = direction.x == 0 && direction.z == 0 ? panStatus.az : atan2(direction.z, direction.x);
+    return {alt, az};
+}
 onMounted(() => {
-    el.value.appendChild(renderer.domElement);
+    const element = renderer.domElement;
+    el.value.appendChild(element);
     calcTime(props.jde, props.loc, props.refraction);
     animate();
     resize();
     window.addEventListener('resize', function () {
         resize();
     });
-    el.value.addEventListener('wheel', event => {
+    element.addEventListener('wheel', event => {
         camera.fov *= (event.deltaY < 0 ? 0.98 : 1.02);
         camera.fov = min(12, max(0.4, camera.fov));
         camera.updateProjectionMatrix();
         event.preventDefault();
+    });
+    element.addEventListener('mousedown', e => {
+        if (e.button === 0) {
+            panStatus.isPan = true;
+            panStatus.x = e.clientX;
+            panStatus.y = e.clientY;
+        }
+    });
+    element.addEventListener('mouseup', e => {
+        panStatus.isPan = false;
+    });
+    element.addEventListener('mousemove', e => {
+        if (panStatus.isPan && !props.lockAt) {
+            let factor = 2 * camera.fov * D2R / el.value.offsetHeight;
+            let dx = (e.clientX - panStatus.x) * factor;
+            let dy = (e.clientY - panStatus.y) * factor;
+            panStatus.x = e.clientX;
+            panStatus.y = e.clientY;
+            let {alt, az} = cameraAltAz();
+            alt += dy;
+            az -= dx;
+            az = pmod(az, 2*PI);
+            panStatus.az = az;
+            if(alt >= PI/2) alt = PI/2 - 0.01;
+            if(alt <= -PI/2) alt = -PI/2 + 0.01;
+
+            const newTarget = [
+                cos(alt)*cos(az) + camera.position.x,
+                sin(alt) + camera.position.y,
+                cos(alt)*sin(az) + camera.position.z,
+            ];
+            camera.lookAt(...newTarget);
+        }
     });
 });
 
@@ -314,7 +361,7 @@ watch(() => ({ jde: props.jde, loc: props.loc, refraction: props.refraction }), 
     render();
 }, { deep: true });
 watch(observerHeight, v => {
-    altAzGrid.position.set(0, v , 0);
+    altAzGrid.position.set(0, v, 0);
     camera.position.set(0, v, 0);
     render();
 });
