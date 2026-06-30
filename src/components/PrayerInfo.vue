@@ -1,6 +1,6 @@
 <script setup>
 import { Location, Prayer } from '@/composables/store';
-import { now } from '@/composables/horison';
+import { now } from '@/composables/horizon';
 import calcPrayer from '@/composables/prayer';
 import moment from 'moment';
 

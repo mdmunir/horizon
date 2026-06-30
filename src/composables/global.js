@@ -1,6 +1,7 @@
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import appLogo from '@/assets/icon.png';
 
+const {abs, PI} = Math;
 const STORAGE_KEY = '__theme';
 const theme = ref(localStorage.getItem(STORAGE_KEY));
 
@@ -54,3 +55,25 @@ class Bus {
 
 export const $bus = new Bus();
 export {appLogo};
+
+export function debounce(fn, delay = 300) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+    }
+}
+export function formatTz(offset){
+    let res = offset == 0 ? ' ' : (offset < 0 ? '-' : '+');
+    let val = Math.abs(offset);
+    res += (Math.floor(val/60).toString().padStart(2, '0'));
+    res += ':';
+    res += (Math.floor(val % 60).toString().padStart(2, '0'));
+    return res;
+}
+
+export function formatLoc(loc){
+    let lat = loc.lat * 180 / PI;
+    let lon = loc.lon * 180 / PI;
+    return `${abs(lat).toFixed(4).padStart(7,' ')} ${lat > 0 ? 'N' : 'S'}, ${abs(lon).toFixed(4).padStart(8, ' ')} ${lon > 0 ? 'W' : 'E'}`;
+}

@@ -203,7 +203,8 @@ export function localCircumstance(data, position) {
             x, y, d, mu,
             a, b, u, v,
             zeta, n, n2, l1, l2, theta, dmu, r,
-            mag, ratio, alt, visible, t
+            mag, ratio, alt, visible, t,
+            dL1: l1 - r, dL2: abs(l2) - r,
         };
     }
 
@@ -222,47 +223,15 @@ export function localCircumstance(data, position) {
     }
 
     function searchC1C4(sign, mid) {
-        let t = mid.t;
-        let dt = 0.0;
-        for (let it = 0; it < 50; it++) {
-            const { a, v, u, b, n, n2, l1 } = calcElem(t);
-            let tmp = (a * v - u * b) / n / l1;
-            if (abs(tmp) > 1) {
-                return null;
-            }
-            tmp = sign * sqrt(1 - tmp * tmp) * l1 / n;
-
-            dt = (u * a + v * b) / n2 - tmp;
-
-            t -= dt;
-            if (abs(dt) < 0.00001) {
-                return calcElem(t);
-            }
-        }
-        return null;
+        const func = t => calcElem(t).dL1;
+        let t = sign > 0 ? binaryRoot(func, mid.t, 5) : binaryRoot(func,-5, mid.t);
+        return calcElem(t);
     }
 
     function searchC2C3(sign, mid) {
-        let t = mid.t;
-        if (mid.l2 < 0) {
-            sign = -sign;
-        }
-        let dt = 0.0;
-        for (let it = 0; it < 50; it++) {
-            const { a, v, u, b, n2, l2 } = calcElem(t);
-            if (l2 == 0) return null;
-            let n = sqrt(n2);
-            let tmp = (a * v - u * b) / n / l2;
-            if (abs(tmp) > 1) return null;
-            tmp = sign * sqrt(1 - tmp * tmp) * l2 / n;
-
-            dt = (u * a + v * b) / n2 - tmp;
-            t -= dt;
-            if (abs(dt) < 0.00001) {
-                return calcElem(t);
-            }
-        }
-        return null;
+        const func = t => calcElem(t).dL2;
+        let t = sign > 0 ? binaryRoot(func, mid.t, 5) : binaryRoot(func,-5, mid.t);
+        return calcElem(t);
     }
 
     /**

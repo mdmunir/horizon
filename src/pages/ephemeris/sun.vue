@@ -3,16 +3,17 @@ import RawTable from '@/components/RawTable.vue';
 import { headTitle } from '@/composables/headTitle';
 import { LocationState } from '@/composables/store';
 import locations from '@/data/locations';
-import { Solar } from '@/composables/position';
+import { solarLite } from '@/composables/position';
+import { deltaTJD } from '@/composables/horizon';
 
 const altitudes = [
     { id: 't', name: 'Topocentric' },
     { id: 'g', name: 'Geocentric' },
     { id: 'a', name: 'Apparent' },
     { id: 'au', name: 'Apparent Upper' },
-    { id: 'ai', name: 'Apparent Lower' },
+    { id: 'al', name: 'Apparent Lower' },
 ];
-const solar = new Solar();
+
 const columns = [
     { name: 'no', label: 'No', width: 6, align: 'right' },
     { name: 'dt', label: 'Time', width: 20, format: 'utc|YYYY-MM-DD HH:mm' },
@@ -21,7 +22,7 @@ const columns = [
     { name: 'lat', label: 'Latitude', width: 15, align: 'right', format: 'dmsc|4' },
     { name: 'ra', label: 'RA', width: 15, align: 'right', format: 'deg' },
     { name: 'dec', label: 'Dec', width: 15, align: 'right', format: 'deg' },
-    { name: 'alt', label: 'Altitude', width: 15, align: 'right', format: 'deg' },
+    { name: 'altitudes', label: 'Altitude', width: 15, align: 'right', format: v => (v[state.alt] * 180 / Math.PI).toFixed(3) },
     { name: 'az', label: 'Azimuth', width: 15, align: 'right', format: 'deg' },
     { name: 'range', label: 'RANGE', width: 15, align: 'right', format: 'fixed|3' },
     { name: 'hp', label: 'HP', width: 15, align: 'right', format: 'dmsc|4' },
@@ -64,7 +65,8 @@ function generate() {
     if (state.from && state.to && state.interval > 0) {
         let i = 1, jd = state.from.toJD(), to = state.to.toJD();
         for (; jd < to; jd += state.interval / 1440, i++) {
-            const row = solar.position(jd, { lat, lon, height }, { alt: state.alt });
+            let jde = jd + deltaTJD(jd) / 86400;
+            const row = solarLite.position(jde, { lat, lon, height });
             row.no = i;
             result.push({
                 no: i, jd,

@@ -1,6 +1,6 @@
-import base from 'astronomia/base';
+import { CosSmallAngle, horner, J2000Century, modf, pmod, sincos } from 'astronomia/base';
 import deltat from 'astronomia/deltat';
-import sidereal from 'astronomia/sidereal';
+import {mean as meanSidereal} from 'astronomia/sidereal';
 
 const { cos, sin, tan, atan, atan2, asin, acos, abs, floor, hypot, sqrt, PI } = Math;
 
@@ -116,20 +116,20 @@ export function now() {
  * @returns {Number[]} [ε, Δψ, Δε]
  */
 export function obliquity(jde) {
-    let T = base.J2000Century(jde);
-    const ε0 = base.horner(T / 100, OBLIQUITY_LASKAR);
+    let T = J2000Century(jde);
+    const ε0 = horner(T / 100, OBLIQUITY_LASKAR);
     const [Δψ, Δε] = nutation(jde);
     return [ε0 + Δε, Δψ, Δε];
 }
 
 export function nutation(jde) {
-    let T = base.J2000Century(jde);
+    let T = J2000Century(jde);
 
     let Δψ = 0, Δε = 0;
     for (let i = NUTASI.length - 1; i >= 0; i--) {
         const row = NUTASI[i];
         const [Δψ0, Δψ1, Δε0, Δε1] = row;
-        const [s, c] = base.sincos(base.horner(T, row.slice(4)));
+        const [s, c] = sincos(horner(T, row.slice(4)));
         Δψ += s * (Δψ0 + Δψ1 * T);
         Δε += c * (Δε0 + Δε1 * T);
     }
@@ -172,20 +172,28 @@ export function deltaTJD(jd) {
  * @returns {Number} GST in radians
  */
 export function GST(jde) {
-    let [JD0, f] = base.modf(jde + 0.5)
-    if (GST.JD0 == JD0) {
-        return base.pmod(GST.v + f * 1.00273790935 * PI_2, PI_2)
+    let DT = deltaTJD(jde);
+    let [JD0, f] = modf(jde + 0.5 - DT/86400);
+    let cache = GST.Caches.find(v => v.JD0 == JD0);
+    if(!cache){
+        let [ε, Δψ,] = obliquity(jde);
+        cache = {
+            JD0,
+            mean: meanSidereal(JD0 - 0.5) * SECTIME2RAD + Δψ * cos(ε),
+        }
+        if(GST.Caches.length > 30){
+            GST.Caches.splice(0, 1);
+            GST.Caches.push(cache);
+        }
     }
-    GST.JD0 = JD0
-    let [ε, Δψ,] = obliquity(jde)
-    GST.v = sidereal.mean(JD0 - 0.5) * SECTIME2RAD + Δψ * cos(ε)
-    return base.pmod(GST.v + f * 1.00273790935 * PI_2, PI_2)
+    return pmod(cache.mean + f * 1.00273790935 * PI_2, PI_2);
 }
+GST.Caches = [];
 
 export function toEquatorial(pos, ε) {
-    const [εsin, εcos] = base.sincos(ε);
-    const [sβ, cβ] = base.sincos(pos.lat);
-    const [sλ, cλ] = base.sincos(pos.lon);
+    const [εsin, εcos] = sincos(ε);
+    const [sβ, cβ] = sincos(pos.lat);
+    const [sλ, cλ] = sincos(pos.lon);
     let ra = atan2(sλ * εcos - (sβ / cβ) * εsin, cλ); // (13.3) p. 93
     if (ra < 0) {
         ra += 2 * PI;
@@ -196,23 +204,35 @@ export function toEquatorial(pos, ε) {
 
 export function toHorizontal(pos, g, jde) {
     const H = GST(jde) - pos.ra - g.lon;
-    const [sH, cH] = base.sincos(H);
-    const [sφ, cφ] = base.sincos(g.lat);
-    const [sδ, cδ] = base.sincos(pos.dec);
+    const [sH, cH] = sincos(H);
+    const [sφ, cφ] = sincos(g.lat);
+    const [sδ, cδ] = sincos(pos.dec);
     const az = atan2(sH, cH * sφ - (sδ / cδ) * cφ); // (13.5) p. 93
     const alt = asin(sφ * sδ + cφ * cδ * cH); // (13.6) p. 93
     return { alt, az };
 }
 
 export function horizontalSep(c1, c2) {
-    const [sind1, cosd1] = base.sincos(c1.alt)
-    const [sind2, cosd2] = base.sincos(c2.alt)
+    const [sind1, cosd1] = sincos(c1.alt)
+    const [sind2, cosd2] = sincos(c2.alt)
     const cd = sind1 * sind2 + cosd1 * cosd2 * cos(c1.az - c2.az) // (17.1) p. 109
-    if (cd < base.CosSmallAngle) {
+    if (cd < CosSmallAngle) {
         return acos(cd)
     } else {
         const cosd = cos((c2.alt + c1.alt) / 2) // average dec of two bodies
         return hypot((c2.az - c1.az) * cosd, c2.alt - c1.alt) // (17.2) p. 109
+    }
+}
+
+export function sep(c1, c2) {
+    const [sind1, cosd1] = sincos(c1.lon);
+    const [sind2, cosd2] = sincos(c2.lon);
+    const cd = sind1 * sind2 + cosd1 * cosd2 * cos(c1.lat - c2.lat); // (17.1) p. 109
+    if (cd < CosSmallAngle) {
+        return acos(cd);
+    } else {
+        const cosd = cos((c2.lon + c1.lon) / 2); // average dec of two bodies
+        return hypot((c2.lat - c1.lat) * cosd, c2.lon - c1.lon); // (17.2) p. 109
     }
 }
 
@@ -228,4 +248,6 @@ export default {
     RAD2SEC,
     horizontalSep,
     toHorizontal,
+    sep,
+    GST,
 }

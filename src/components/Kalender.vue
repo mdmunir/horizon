@@ -1,6 +1,9 @@
 <script setup>
+import { CalendarToJD, isCalendarGregorian } from 'astronomia/julian';
+
 const props = defineProps({
-    month: { type: Number, required: true }
+    year: { type: Number, required: true },
+    month: { type: Number, required: true },
 });
 const DAYS = [
     'Senin',
@@ -10,7 +13,15 @@ const DAYS = [
     'Jumat',
     'Sabtu',
     'Ahad',
-];
+].map(v => [v, v.charAt(0)]);
+
+const JD = computed(()=> CalendarToJD(props.year, props.month, 1, !isCalendarGregorian(props.year, props.month)));
+const D0 = computed(() => JD.value % 7);
+const rows = computed(() => {
+    const res = [];
+    
+    return res;
+});
 </script>
 <template>
     <v-table density="compact">
@@ -20,7 +31,8 @@ const DAYS = [
             </tr>
             <tr>
                 <th v-for="d in DAYS">
-                    {{ d }}
+                    <span class="d-none d-sm-inline">{{ d[0] }}</span>
+                    <span class="d-sm-none d-inline">{{ d[1] }}</span>
                 </th>
             </tr>
         </thead>

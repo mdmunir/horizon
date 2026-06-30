@@ -1,7 +1,7 @@
 <script setup>
 import calcPrayer from '@/composables/prayer';
 import { Location, Prayer } from '@/composables/store';
-import { now } from '@/composables/horison';
+import { now } from '@/composables/horizon';
 import moment from 'moment';
 import { useDisplay } from 'vuetify';
 const {mobile} = useDisplay();

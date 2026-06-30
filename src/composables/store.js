@@ -1,4 +1,5 @@
 import { reactive, readonly } from "vue";
+const {PI, abs} = Math;
 
 const STORAGE_KEY = '__store/';
 
@@ -48,4 +49,10 @@ export const [Prayer, PrayerState] = useSetting('prayer', {
     maghrib: 2,
     isya: 2,
     terbit: -2,
+});
+
+export const LatLon = computed(() => {
+    let lat = Location.lat * 180 / PI;
+    let lon = Location.lon * 180 / PI;
+    return `${abs(lat).toFixed(4)} ${lat > 0 ? 'N' : 'S'}, ${abs(lon).toFixed(4)} ${lon > 0 ? 'W' : 'E'}`;
 });

@@ -1,18 +1,10 @@
 <script setup>
 import { copyClipboard, downloadText, rawTable } from '@/composables/raw-table';
-import { Location } from '@/composables/store';
+import { Location, LatLon } from '@/composables/store';
 
 const props = defineProps({
     data: {type: Object, required: true},
     date: {type: String},
-});
-
-const { abs, PI } = Math;
-const R2D = 180 / PI;
-const latLon = computed(() => {
-    let lat = Location.lat * R2D;
-    let lon = Location.lon * R2D;
-    return `${abs(lat).toFixed(4)} ${lat > 0 ? 'N' : 'S'}, ${abs(lon).toFixed(4)} ${lon > 0 ? 'W' : 'E'}`;
 });
 
 const formatUtc = v => v ? moment(v).utc().format('HH:mm:ss') : '-';
@@ -72,22 +64,22 @@ const element = computed(() => {
     }).join('\n');
 });
 
+const pre = useTemplateRef('pre');
 </script>
 <template>
     <Panel content-class="overflow-auto">
         <template #toolbar-right>
-            <v-btn @click="downloadText(content, `solar-eclipse-${date}.txt`)" icon="mdi-content-save" density="compact"></v-btn>
-            <v-btn @click="copyClipboard(content)" icon="mdi-content-copy" density="compact"></v-btn>
+            <v-btn @click="downloadText(pre.innerHTML, `solar-eclipse-${date}.txt`)" icon="mdi-content-save" density="compact"></v-btn>
+            <v-btn @click="copyClipboard(pre.innerHTML)" icon="mdi-content-copy" density="compact"></v-btn>
         </template>
-        <pre>Solar Eclipse {{date}}.
+        <pre ref="pre">Solar Eclipse {{date}}.
 Global Circumstance:
 {{ global }}
 
-Local Circumstance at {{ Location.name }}({{ latLon }}):
+Local Circumstance at {{ Location.name }}({{ LatLon }}):
 {{ local }}
 
 Besselian Element. T0={{data.T0}}:
-{{ element }}
-        </pre>
+{{ element }}</pre>
     </Panel>
 </template>

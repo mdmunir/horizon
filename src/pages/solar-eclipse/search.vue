@@ -1,6 +1,6 @@
 <script setup>
 import { eclipseCentury, localCircumstance } from '@/composables/solar-eclipse';
-import { Location } from '@/composables/store';
+import { LocationState } from '@/composables/store';
 import locations from '@/data/locations';
 import timezones from '@/data/timezone';
 
@@ -8,9 +8,9 @@ const types = ['', 'P', 'A', 'AT', 'P', 'U', 'T'];
 function formatTime(val){
     if(val && val.dt){
         if(val.riset){
-            return moment(val.dt).utcOffset(Location.offset).format('HH:mm') + `(${val.riset})`;
+            return moment(val.dt).utcOffset(LocationState.offset).format('HH:mm') + `(${val.riset})`;
         }
-        return moment(val.dt).utcOffset(Location.offset).format('HH:mm:ss');
+        return moment(val.dt).utcOffset(LocationState.offset).format('HH:mm:ss');
     }
     return '-'
 }

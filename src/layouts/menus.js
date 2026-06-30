@@ -6,6 +6,13 @@ export default [
             { title: 'Moon', href: '/ephemeris/moon', icon: 'mdi-moon-waxing-crescent' },
         ]
     },
+    {
+        title: 'Lunar Phase', icon: 'mdi-moon-waxing-crescent', 
+        items: [
+            { title: 'Hilal', href: '/lunar-phase/hilal', icon: 'mdi-moon-waxing-crescent' },
+            { title: 'Animation', href: '/lunar-phase/animation', icon: 'mdi-play' },
+        ]
+    },
     { title: 'Solar Eclipse', icon: 'mdi-moon-new',
         items: [
             { title: 'List', href: '/solar-eclipse/list', icon: 'mdi-table'},
