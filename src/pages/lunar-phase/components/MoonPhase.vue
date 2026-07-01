@@ -23,11 +23,11 @@ import { solarLite, moonLite } from '@/composables/position';
 import { pmod, sincos } from 'astronomia/base';
 import { saemundsson } from 'astronomia/refraction';
 
-const { sin, cos, asin, atan2, PI, max, min, floor, ceil, tan, hypot } = Math;
+const { sin, cos, asin, atan2, PI, max, min, floor, ceil, tan, abs } = Math;
 const R2D = 180 / PI;
 const D2R = PI / 180;
 const SCALE = 1000;
-const GRID_DISTANCE = 1000 / SCALE;
+const GRID_DISTANCE = 155000000 / SCALE;
 const MOON_RADIUS = 1737.928 / SCALE; // km
 const EARTH_RADIUS = 6378.137 / SCALE;
 const SUN_RADIUS = 695991.75 / SCALE;
@@ -60,27 +60,31 @@ const el = useTemplateRef('el');
 
 let animated = true;
 function createAzimuthLine(R, az) {
-    const color = az % 5 == 0 ? 0xff0000 : 0xffffff;
+    const color = az % 15 == 0 ? 0xff0000 : 0xffffff;
     let az2 = az * D2R;
     const points = [];
-    for (let alt = -PI / 2; alt <= PI / 2; alt += D2R) {
-        points.push(new Vector3(R * cos(alt) * cos(az2), R * sin(alt), R * cos(alt) * sin(az2)));
+    for (let alt = -90; alt <= 90; alt++) {
+        let alt2 = alt * D2R;
+        points.push(new Vector3(R * cos(alt2) * cos(az2), R * sin(alt2), R * cos(alt2) * sin(az2)));
     }
-    return new Line(new BufferGeometry().setFromPoints(points), new LineBasicMaterial({ color }));
+    const line = new Line(new BufferGeometry().setFromPoints(points), new LineBasicMaterial({ color }));
+    line.userData = {az};
+    return line;
 }
 function createAltitudeLine(R, alt) {
-    const color = alt % 5 == 0 ? 0xff0000 : 0xffffff;
+    const color = alt % 15 == 0 ? 0xff0000 : 0xffffff;
     let alt2 = alt * D2R;
     const points = [];
-    for (let az = 0; az <= 2 * PI; az += D2R) {
-        points.push(new Vector3(R * cos(alt2) * cos(az), R * sin(alt2), R * cos(alt2) * sin(az)));
+    for (let az = 0; az < 360; az++) {
+        let az2 = az * D2R;
+        points.push(new Vector3(R * cos(alt2) * cos(az2), R * sin(alt2), R * cos(alt2) * sin(az2)));
     }
     return new LineLoop(new BufferGeometry().setFromPoints(points), new LineBasicMaterial({ color }));
 }
 function createAltAzLabel(R, alt, az) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    const fontSize = 40;
+    const fontSize = 32;
     ctx.font = `${fontSize}px Arial`;
     const txt = `${alt}°, ${az}°`;
     let wh = ctx.measureText(txt);
@@ -113,11 +117,13 @@ function createAltAzLabel(R, alt, az) {
     sprite.userData = {
         canvasWidth: canvas.width,
         canvasHeight: canvas.height,
+        az,
     };
     return sprite;
 }
 
 const SPRITES = [];
+const AZ_LINES = [];
 function createGrid() {
     const R = GRID_DISTANCE;
     const group = new Group();
@@ -125,7 +131,9 @@ function createGrid() {
         group.add(createAltitudeLine(R, alt));
     }
     for (let az = 0; az < 360; az++) {
-        group.add(createAzimuthLine(R, az));
+        const line = createAzimuthLine(R, az);
+        AZ_LINES.push(line);
+        group.add(line);
     }
     for (let az = 0; az < 360; az += 5) {
         for (let alt = -85; alt <= 85; alt += 5) {
@@ -146,6 +154,20 @@ function resizeSprite() {
         const w = sprite.userData.canvasWidth;
         const h = sprite.userData.canvasHeight;
         sprite.scale.set(w * unitsPerPixel, h * unitsPerPixel, 1);
+    });
+}
+
+function showAzLine(alt){
+    let sc = cos(alt) < 0.1 ? 10 : floor(1/cos(alt));
+    sc = sc < 10 && sc > 6 ? 6 : sc;
+    alt = abs(alt * R2D);
+    AZ_LINES.forEach(line =>{
+        let az = line.userData.az;
+        line.visible = az % sc == 0;
+    });
+    SPRITES.forEach(label =>{
+        let az = label.userData.az;
+        label.visible = az % sc == 0;
     });
 }
 
@@ -183,13 +205,16 @@ function calcTime(jde, loc, refraction = true) {
     moon.position.set(...moonXyz);
     light.target.position.set(...moonXyz);
 
+    camera.up.set(0, 1, 0);
     moon.lookAt(0, 0, 0);
-    moon.up.set(cos(loc.lat), sin(loc.lat), 0);
+    const up = [cos(loc.lat), sin(loc.lat), 0];
+    moon.up.set(...up);
     const lock = ({ sun, moon })[props.lockAt];
     if (lock) {
         camera.lookAt(lock.position);
+        let {alt} = cameraAltAz();
+        showAzLine(alt);
     }
-    camera.up.set(0, 1, 0);
     moonMaterial.emissiveIntensity = 0.12 * Math.pow(1 - 0.1, 2.3);
 }
 
@@ -284,6 +309,9 @@ onMounted(() => {
     element.addEventListener('mouseup', e => {
         panStatus.isPan = false;
     });
+    element.addEventListener('mouseleave', ()=>{
+        panStatus.isPan = false;
+    });
     element.addEventListener('mousemove', e => {
         if (panStatus.isPan && !props.lockAt) {
             let factor = 2 * camera.fov * D2R / el.value.offsetHeight;
@@ -305,6 +333,7 @@ onMounted(() => {
                 cos(alt)*sin(az) + camera.position.z,
             ];
             camera.lookAt(...newTarget);
+            showAzLine(alt);
         }
     });
 });
@@ -346,6 +375,8 @@ watch(() => props.lockAt, lockAt => {
     const lock = ({ sun, moon })[lockAt];
     if (lock) {
         camera.lookAt(lock.position);
+        let {alt} = cameraAltAz();
+        showAzLine(alt);
     }
     camera.up.set(0, 1, 0);
     camera.updateProjectionMatrix();
